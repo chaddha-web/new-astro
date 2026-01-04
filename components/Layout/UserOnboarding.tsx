@@ -84,10 +84,11 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
 
   useEffect(() => {
       setErrorMsg(''); 
+      const cleanContact = contactInput.trim();
       if (isEmailDetected) {
-          setFormData(prev => ({ ...prev, contact: contactInput }));
+          setFormData(prev => ({ ...prev, contact: cleanContact }));
       } else {
-          setFormData(prev => ({ ...prev, contact: `${countryCode}${contactInput.trim()}` }));
+          setFormData(prev => ({ ...prev, contact: `${countryCode}${cleanContact}` }));
       }
   }, [contactInput, countryCode, isEmailDetected]);
 
@@ -101,7 +102,9 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
       setIsLoading(true);
       setErrorMsg('');
 
-      const contact = isEmailDetected ? contactInput : `${countryCode}${contactInput.trim()}`;
+      const cleanInput = contactInput.trim();
+      const contact = isEmailDetected ? cleanInput : `${countryCode}${cleanInput}`;
+      
       try {
         const { profile } = await fetchUserProfile(contact);
         if (profile) {
@@ -131,8 +134,9 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
       setIsLoading(true);
       setErrorMsg('');
 
-      const contact = isEmailDetected ? contactInput : `${countryCode}${contactInput.trim()}`;
-      const result = await verifyAuthOtp(contact, otp);
+      const cleanInput = contactInput.trim();
+      const contact = isEmailDetected ? cleanInput : `${countryCode}${cleanInput}`;
+      const result = await verifyAuthOtp(contact, otp.trim());
 
       setIsLoading(false);
 

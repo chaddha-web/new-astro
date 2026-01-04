@@ -142,17 +142,16 @@ export const verifyAuthOtp = async (contact: string, token: string): Promise<{ s
             await logCommunication(isEmail ? 'email' : 'sms', contact, 'inbound', 'completed', 'OTP Verified');
             
             // Sync Profile
+            // Check if profile exists. If not, insert a skeletal one.
+            // Note: For email, contact might differ in casing from Auth, but we use what user typed.
             const { data: profile } = await supabase.from('profiles').select('id').eq('id', userId).single();
             if (!profile) {
-                // Ensure we only insert columns that exist in the DB schema provided by user
-                // Use NULL instead of undefined to be explicit for SQL
                 await supabase.from('profiles').insert([{
                     id: userId,
                     contact: contact,
                     name: contact.split('@')[0],
                     daily_questions_left: 1,
                     is_premium: false
-                    // tier removed to prevent error if column missing
                 }]);
             }
             return { success: true, userId: userId };
@@ -462,11 +461,16 @@ export const saveUserProfile = async (user: UserState, password?: string, messag
 
       // Prefer ID if available (UUID), otherwise fallback to contact
       if (user.id) {
-         const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
-         if (error) console.error("DB: Update failed", error);
+         // CRITICAL FIX: Use upsert instead of update when ID is present. 
+         // This ensures that if the row exists it is updated, but if for any reason (like incomplete registration)
+         // the row is missing attributes or needs a forceful write, upsert handles it better.
+         // We also include the ID in the payload for the upsert to work on PK.
+         const upsertPayload = { ...payload, id: user.id };
+         const { error } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'id' });
+         if (error) console.error("DB: Upsert (by ID) failed", error);
       } else {
          const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'contact' });
-         if (error) console.error("DB: Upsert failed", error);
+         if (error) console.error("DB: Upsert (by Contact) failed", error);
       }
   } catch (e) { console.error("DB: Exception saving profile", e); }
 };
