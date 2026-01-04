@@ -451,17 +451,17 @@ export const saveUserProfile = async (user: UserState, password?: string, messag
       if (messages && messages.length > 0) payload.chat_history = compressAndEncrypt(messages);
 
       // Prefer ID if available (UUID), otherwise fallback to contact
-      if (user.id) {
+      if (user.id && user.id.length > 5) {
          // CRITICAL FIX: Use upsert instead of update when ID is present. 
          // This ensures that if the row exists it is updated, but if for any reason (like incomplete registration)
          // the row is missing attributes or needs a forceful write, upsert handles it better.
          // We also include the ID in the payload for the upsert to work on PK.
          const upsertPayload = { ...payload, id: user.id };
          const { error } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'id' });
-         if (error) console.error("DB: Upsert (by ID) failed", error);
+         if (error) console.error("DB: Upsert (by ID) failed", JSON.stringify(error));
       } else {
          const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'contact' });
-         if (error) console.error("DB: Upsert (by Contact) failed", error);
+         if (error) console.error("DB: Upsert (by Contact) failed", JSON.stringify(error));
       }
   } catch (e) { console.error("DB: Exception saving profile", e); }
 };

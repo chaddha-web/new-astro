@@ -437,123 +437,150 @@ export default function App() {
       });
   };
 
-  const handleOnboardingSubmit = (data: OnboardingData, selectedTier: 'free' | 'premium' | 'member21') => {
-      const final = async () => {
-          setIsGlobalLoading(true);
+  const handleOnboardingSubmit = async (data: OnboardingData, selectedTier: 'free' | 'premium' | 'member21') => {
+      setIsGlobalLoading(true);
+      setLoadingText("Creating Cosmic Profile...");
+
+      // 1. Create Base User State
+      const uniqueName = data.name;
+      const baseUser: UserState = { 
+          ...userState, 
+          id: data.userId, // This should come from Auth
+          name: uniqueName, 
+          contact: data.contact, 
+          gender: data.gender, 
+          birthDate: data.date, 
+          birthTime: data.time, 
+          birthPlace: data.place, 
+          isPremium: false, 
+          tier: 'free',
+          dailyQuestionsLeft: INITIAL_DAILY_LIMIT, 
+          hasOnboarded: true,
+          language: userState.language || 'en',
+          subscriptionExpiry: undefined
+      };
+
+      // 2. Save Profile Immediately (Base) BEFORE Payment
+      try {
+          await saveUserProfile(baseUser, data.password);
+          setUserState(baseUser);
+          
+          const token = generateJWT(baseUser.contact || 'User');
+          localStorage.setItem('astro_token', token);
+      } catch (e) {
+          console.error("Profile Save Error:", e);
+          setIsGlobalLoading(false);
+          alert("Failed to create profile. Please check your connection.");
+          return;
+      }
+
+      // 3. Define Finalize Logic (Chat Generation)
+      const finalizeOnboarding = async (finalUser: UserState) => {
+          setLoadingText("Aligning Stars...");
           try {
-            const uniqueName = data.name;
-            let dailyLimit = INITIAL_DAILY_LIMIT;
-            let expiryDate: Date | undefined = undefined;
-            const isPremium = selectedTier === 'premium';
-            
-            if (selectedTier === 'premium') {
-                dailyLimit = PREMIUM_DAILY_LIMIT;
-                const now = new Date();
-                const expiry = new Date(now);
-                expiry.setMonth(expiry.getMonth() + 1);
-                expiry.setDate(expiry.getDate() - 1);
-                expiryDate = expiry;
-            } else if (selectedTier === 'member21') {
-                dailyLimit = 0; // Top-up only for chat
-                const now = new Date();
-                const expiry = new Date(now);
-                expiry.setFullYear(expiry.getFullYear() + 3);
-                expiryDate = expiry;
-            }
+              const instr = generateSystemInstruction(uniqueName, data.gender, data.date, data.time, data.place, finalUser.language);
+              await initializeChat(instr);
+              
+              const cacheKey = `${data.name.trim().toLowerCase()}_${data.date}_${data.time}_${data.place.trim().toLowerCase()}`.replace(/\s+/g, '_');
+              let txt = await fetchCachedReading(cacheKey);
 
-            const newUser: UserState = { 
-                ...userState, 
-                id: data.userId, // Critical: Ensure ID is correctly passed
-                name: uniqueName, 
-                contact: data.contact, 
-                gender: data.gender, 
-                birthDate: data.date, 
-                birthTime: data.time, 
-                birthPlace: data.place, 
-                isPremium, 
-                tier: selectedTier,
-                dailyQuestionsLeft: dailyLimit, 
-                hasOnboarded: true,
-                subscriptionExpiry: expiryDate
-            };
-            
-            // 1. UPDATE STATE
-            setUserState(newUser); 
-            
-            // 2. SAVE PROFILE FIRST (Wait for it!)
-            await saveUserProfile(newUser, data.password);
-            
-            // 3. THEN SAVE TRANSACTION (Prevent Foreign Key Error)
-            if (selectedTier === 'premium') {
-                addTransaction(299, 'Subscription', `Premium Activation`, newUser);
-            } else if (selectedTier === 'member21') {
-                addTransaction(21, 'Subscription', `Member 21 (3 Years)`, newUser);
-            }
+              if (!txt) {
+                  let prompt = "Initial Overview: Name, Challenges, Vastu Hint, Warning. Deep Dive: Full Vastu.";
+                  const treatAsPremium = finalUser.isPremium || finalUser.tier === 'member21';
+                  
+                  if (treatAsPremium) {
+                      prompt = `
+                      I AM A PREMIUM SEEKER. GENERATE A DIVINE, STRUCTURED ASTROLOGICAL DECREE.
+                      STRICTLY FOLLOW THIS STRUCTURE:
+                      1. **Divine Greeting**: Welcoming the soul (Higher Being tone).
+                      2. **Spiritual Significance of Name**: Meaning of ${uniqueName}.
+                      3. **Cosmic Blueprint (Birth Chart)**: Lagna, Moon Sign, Key Yogas (Raj Yogas/Dhan Yogas).
+                      4. **Time's Current Flow**: Current Dasha/Period analysis.
+                      5. **Immediate Remedy**: One powerful, actionable ritual.
+                      6. **Vastu Architecture**: ASCII Map with specific defects.
+                      7. **Gemstones & Mantras**: Specific recommendations (mention 'Coral', 'Sapphire', or 'Rudraksha' if applicable to trigger shop).
+                      8. **Closing Blessing**.
+                      Deep Dive: Detailed planetary nuances.
+                      `;
+                  }
+                  
+                  txt = await sendMessageToGemini(prompt, treatAsPremium);
+                  if (txt && txt.length > 50) await saveCachedReading(cacheKey, txt);
+              }
 
-            const token = generateJWT(newUser.contact || 'User');
-            localStorage.setItem('astro_token', token);
-            
-            const instr = generateSystemInstruction(uniqueName, data.gender, data.date, data.time, data.place, userState.language);
-            await initializeChat(instr);
-            
-            const cacheKey = `${data.name.trim().toLowerCase()}_${data.date}_${data.time}_${data.place.trim().toLowerCase()}`.replace(/\s+/g, '_');
-            
-            let txt = await fetchCachedReading(cacheKey);
+              const lowerResponse = txt?.toLowerCase() || "";
+              const suggestedProducts = products.filter(p => {
+                  const nameWords = p.name.toLowerCase().split(' ');
+                  const cat = p.category.toLowerCase();
+                  return lowerResponse.includes(cat) || nameWords.some(w => w.length > 4 && lowerResponse.includes(w));
+              }).slice(0, 1);
+              
+              const hasDeepDive = txt?.includes("Deep Dive:");
+              const shouldLock = hasDeepDive && !finalUser.isPremium && finalUser.tier !== 'member21';
 
-            if (!txt) {
-                let prompt = "Initial Overview: Name, Challenges, Vastu Hint, Warning. Deep Dive: Full Vastu.";
-                
-                // Member 21 also gets Premium Deep Dive style initiation
-                const treatAsPremium = isPremium || selectedTier === 'member21';
-
-                if (treatAsPremium) {
-                    prompt = `
-                    I AM A PREMIUM SEEKER. GENERATE A DIVINE, STRUCTURED ASTROLOGICAL DECREE.
-                    STRICTLY FOLLOW THIS STRUCTURE:
-                    1. **Divine Greeting**: Welcoming the soul (Higher Being tone).
-                    2. **Spiritual Significance of Name**: Meaning of ${uniqueName}.
-                    3. **Cosmic Blueprint (Birth Chart)**: Lagna, Moon Sign, Key Yogas (Raj Yogas/Dhan Yogas).
-                    4. **Time's Current Flow**: Current Dasha/Period analysis.
-                    5. **Immediate Remedy**: One powerful, actionable ritual.
-                    6. **Vastu Architecture**: ASCII Map with specific defects.
-                    7. **Gemstones & Mantras**: Specific recommendations (mention 'Coral', 'Sapphire', or 'Rudraksha' if applicable to trigger shop).
-                    8. **Closing Blessing**.
-                    Deep Dive: Detailed planetary nuances.
-                    `;
-                }
-                txt = await sendMessageToGemini(prompt, treatAsPremium);
-                if (txt && txt.length > 50) await saveCachedReading(cacheKey, txt);
-            }
-            
-            const lowerResponse = txt.toLowerCase();
-            const suggestedProducts = products.filter(p => {
-                const nameWords = p.name.toLowerCase().split(' ');
-                const cat = p.category.toLowerCase();
-                return lowerResponse.includes(cat) || nameWords.some(w => w.length > 4 && lowerResponse.includes(w));
-            }).slice(0, 1);
-            
-            const hasDeepDive = txt.includes("Deep Dive:");
-            const shouldLock = hasDeepDive && !isPremium && selectedTier !== 'member21';
-
-            setMessages([{
-                id:generateId(), 
-                text:txt, 
-                sender:Sender.AI, 
-                timestamp:new Date(), 
-                isLocked: shouldLock, 
-                metadata: shouldLock ? { status: 'locked' } : undefined,
-                suggestedProducts: suggestedProducts.length > 0 ? suggestedProducts : undefined
-            }]);
+              setMessages([{
+                  id: generateId(), 
+                  text: txt || "Welcome.", 
+                  sender: Sender.AI, 
+                  timestamp: new Date(), 
+                  isLocked: shouldLock, 
+                  metadata: shouldLock ? { status: 'locked' } : undefined,
+                  suggestedProducts: suggestedProducts.length > 0 ? suggestedProducts : undefined
+              }]);
           } catch(e) { console.error(e); } 
           finally { setIsGlobalLoading(false); }
       };
 
-      if (selectedTier === 'premium') {
-          initiatePayment(299, "Premium Access", final, data.contact);
-      } else if (selectedTier === 'member21') {
-          initiatePayment(21, "Member 21 Initiation", final, data.contact);
+      // 4. Handle Payment Flow (Post-User Creation)
+      if (selectedTier === 'premium' || selectedTier === 'member21') {
+          const cost = selectedTier === 'premium' ? 299 : 21;
+          const desc = selectedTier === 'premium' ? "Premium Access" : "Member 21 Initiation";
+          
+          setIsGlobalLoading(false); // Hide loader to show payment modal
+
+          initiatePayment(cost, desc, async () => {
+              setIsGlobalLoading(true);
+              setLoadingText("Upgrading Cosmic Energy...");
+              
+              let dailyLimit = INITIAL_DAILY_LIMIT;
+              let expiryDate: Date | undefined = undefined;
+              let isPremium = false;
+              
+              if (selectedTier === 'premium') {
+                  dailyLimit = PREMIUM_DAILY_LIMIT;
+                  const now = new Date();
+                  const expiry = new Date(now);
+                  expiry.setMonth(expiry.getMonth() + 1);
+                  expiry.setDate(expiry.getDate() - 1);
+                  expiryDate = expiry;
+                  isPremium = true;
+              } else if (selectedTier === 'member21') {
+                  dailyLimit = 0; 
+                  const now = new Date();
+                  const expiry = new Date(now);
+                  expiry.setFullYear(expiry.getFullYear() + 3);
+                  expiryDate = expiry;
+                  isPremium = false;
+              }
+
+              const upgradedUser: UserState = {
+                  ...baseUser,
+                  isPremium,
+                  tier: selectedTier,
+                  dailyQuestionsLeft: dailyLimit,
+                  subscriptionExpiry: expiryDate
+              };
+
+              // Update User with Premium/Member Status
+              await saveUserProfile(upgradedUser);
+              setUserState(upgradedUser);
+
+              addTransaction(cost, 'Subscription', desc, upgradedUser);
+              await finalizeOnboarding(upgradedUser);
+          }, data.contact);
       } else {
-          final();
+          // Free Tier - Proceed directly
+          await finalizeOnboarding(baseUser);
       }
   };
 
