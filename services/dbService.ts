@@ -141,19 +141,10 @@ export const verifyAuthOtp = async (contact: string, token: string): Promise<{ s
             const userId = data.session.user.id;
             await logCommunication(isEmail ? 'email' : 'sms', contact, 'inbound', 'completed', 'OTP Verified');
             
-            // Sync Profile
-            // Check if profile exists. If not, insert a skeletal one.
-            // Note: For email, contact might differ in casing from Auth, but we use what user typed.
-            const { data: profile } = await supabase.from('profiles').select('id').eq('id', userId).single();
-            if (!profile) {
-                await supabase.from('profiles').insert([{
-                    id: userId,
-                    contact: contact,
-                    name: contact.split('@')[0],
-                    daily_questions_left: 1,
-                    is_premium: false
-                }]);
-            }
+            // NOTE: We do NOT insert a skeletal profile here anymore.
+            // We wait for saveUserProfile to be called with the full form data.
+            // This prevents "Name = Email" and NULL field issues.
+            
             return { success: true, userId: userId };
         } else {
             return { success: false, message: "Invalid code." };
