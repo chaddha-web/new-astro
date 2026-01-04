@@ -1,6 +1,9 @@
 
 import React, { useState } from 'react';
 import { UserState, HoroscopeData } from '../../types';
+import { jsPDF } from "jspdf";
+import { generateJsonContent } from '../../services/geminiService';
+import { Type, Schema } from '@google/genai';
 
 interface HoroscopeViewProps {
   user: UserState;
@@ -11,6 +14,238 @@ interface HoroscopeViewProps {
 
 const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport, horoscopeData, isLoading }) => {
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  const checkDownloadEligibility = (type: 'weekly' | 'monthly'): { allowed: boolean; message?: string } => {
+      // 1. Check Tier
+      const isEligible = user.isPremium || user.tier === 'member21';
+      if (!isEligible) {
+          return { allowed: false, message: "Upgrade to Premium or Member 21 to download reports." };
+      }
+
+      // 2. Check Frequency (LocalStorage for frontend simplicity)
+      const key = `last_${type}_dl_${user.id || 'guest'}`;
+      const lastDl = localStorage.getItem(key);
+      
+      if (lastDl) {
+          const lastDate = new Date(lastDl);
+          const now = new Date();
+          const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (type === 'weekly' && diffDays < 7) {
+              return { allowed: false, message: `Weekly limit reached. Try again in ${7 - diffDays} days.` };
+          }
+          if (type === 'monthly' && diffDays < 30) {
+              return { allowed: false, message: "Monthly yearbook already downloaded this month." };
+          }
+      }
+      return { allowed: true };
+  };
+
+  const handleDownloadReport = async (type: 'weekly' | 'monthly') => {
+      const eligibility = checkDownloadEligibility(type);
+      if (!eligibility.allowed) {
+          alert(eligibility.message);
+          return;
+      }
+
+      setIsGeneratingPdf(true);
+      try {
+          const doc = new jsPDF();
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 20;
+          
+          // Colors
+          const goldColor = [218, 165, 32] as [number, number, number];
+          const darkColor = [26, 11, 46] as [number, number, number]; // Mystic Dark
+
+          // Helper: Add Branding (Watermark, Border, Footer) to current page
+          const addPageBranding = (pageNo: number) => {
+              // 1. Watermark (Diagonal, Light)
+              doc.saveGraphicsState();
+              doc.setTextColor(230, 230, 230); // Very light grey
+              doc.setFontSize(60);
+              doc.setFont("helvetica", "bold");
+              
+              // Rotate context for diagonal text
+              // We simulate rotation by using a transformation matrix if needed, 
+              // but jsPDF text options has 'angle'
+              doc.text("astro21.io", pageWidth / 2, pageHeight / 2, {
+                  align: "center",
+                  angle: 45,
+                  renderingMode: "fill"
+              });
+              doc.restoreGraphicsState();
+
+              // 2. Border
+              doc.setDrawColor(...goldColor);
+              doc.setLineWidth(1);
+              doc.rect(10, 10, pageWidth - 20, pageHeight - 20); // Outer
+              doc.setLineWidth(0.2);
+              doc.rect(12, 12, pageWidth - 24, pageHeight - 24); // Inner decorative
+
+              // 3. Footer
+              doc.setFontSize(9);
+              doc.setTextColor(150);
+              doc.setFont("times", "italic");
+              doc.text(`astro21.io  |  Page ${pageNo}`, pageWidth / 2, pageHeight - 15, { align: "center" });
+          };
+
+          // --- PAGE 1 SETUP ---
+          addPageBranding(1);
+          let yPos = 30;
+
+          // Header Logo
+          doc.setFont("times", "bold");
+          doc.setFontSize(28);
+          doc.setTextColor(...goldColor);
+          doc.text("ASTRO21", pageWidth / 2, yPos, { align: "center" });
+          yPos += 8;
+
+          // Subtitle
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(10);
+          doc.setTextColor(100);
+          doc.text("COSMIC GUIDANCE REPORT", pageWidth / 2, yPos, { align: "center", charSpace: 3 });
+          yPos += 15;
+
+          // Report Type Title
+          doc.setFont("times", "bold");
+          doc.setFontSize(16);
+          doc.setTextColor(...darkColor);
+          doc.text(`${type === 'weekly' ? 'Weekly Transit Forecast' : `Annual Yearbook ${new Date().getFullYear()}`}`, pageWidth / 2, yPos, { align: "center" });
+          yPos += 10;
+
+          // User Meta Data Box
+          doc.setDrawColor(...goldColor);
+          doc.setFillColor(252, 250, 240); // Off-white/cream background
+          doc.roundedRect(margin, yPos, pageWidth - (margin * 2), 25, 3, 3, 'FD');
+          
+          yPos += 8;
+          doc.setFontSize(11);
+          doc.setTextColor(50);
+          doc.text(`Seeker: ${user.name}`, margin + 5, yPos);
+          doc.text(`Sign: ${horoscopeData?.starSign || 'Unknown'}`, pageWidth - margin - 5, yPos, { align: "right" });
+          
+          yPos += 8;
+          doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, margin + 5, yPos);
+          doc.text(`Format: ${type === 'weekly' ? 'Sunday - Saturday' : 'January - December'}`, pageWidth - margin - 5, yPos, { align: "right" });
+          
+          yPos += 20;
+
+          // Content Generation via AI
+          let reportContent = [];
+          
+          if (type === 'weekly') {
+              const prompt = `Generate a 7-day horoscope for ${user.name} (${horoscopeData?.starSign}) starting this Sunday to Saturday. 
+              Output JSON array: [{ "day": "Sunday", "forecast": "..." }, ...]. 
+              Tone: Mystical yet practical. Max 40 words per day.`;
+              
+              const schema: Schema = {
+                  type: Type.ARRAY,
+                  items: {
+                      type: Type.OBJECT,
+                      properties: {
+                          day: { type: Type.STRING },
+                          forecast: { type: Type.STRING }
+                      },
+                      required: ['day', 'forecast']
+                  }
+              };
+              
+              const data = await generateJsonContent(prompt, 2000, schema);
+              reportContent = data || [];
+          } else {
+              const year = new Date().getFullYear();
+              const prompt = `Generate a 12-month horoscope for ${user.name} (${horoscopeData?.starSign}) for the year ${year}, January to December. 
+              Output JSON array: [{ "month": "January", "forecast": "..." }, ...]. 
+              Tone: Mystical yet practical. Max 40 words per month.`;
+              
+              const schema: Schema = {
+                  type: Type.ARRAY,
+                  items: {
+                      type: Type.OBJECT,
+                      properties: {
+                          month: { type: Type.STRING },
+                          forecast: { type: Type.STRING }
+                      },
+                      required: ['month', 'forecast']
+                  }
+              };
+              
+              const data = await generateJsonContent(prompt, 3000, schema);
+              reportContent = data || [];
+          }
+
+          // Render Content Loop
+          doc.setFont("times", "normal");
+          let pageCount = 1;
+
+          if (reportContent && reportContent.length > 0) {
+              reportContent.forEach((item: any, index: number) => {
+                  const title = item.day || item.month;
+                  const text = item.forecast;
+
+                  // Dynamic Check for Page Break
+                  // Bottom margin is ~20px + footer space
+                  if (yPos > pageHeight - 40) {
+                      doc.addPage();
+                      pageCount++;
+                      addPageBranding(pageCount);
+                      yPos = 30; // Reset top margin
+                  }
+
+                  // Item Title
+                  doc.setFont("times", "bold");
+                  doc.setFontSize(12);
+                  doc.setTextColor(...darkColor);
+                  
+                  // Draw a small bullet/icon
+                  doc.setDrawColor(...goldColor);
+                  doc.setFillColor(...goldColor);
+                  doc.circle(margin - 4, yPos - 1, 1.5, 'F');
+                  
+                  doc.text(title.toUpperCase(), margin, yPos);
+                  yPos += 6;
+
+                  // Item Body
+                  doc.setFont("times", "normal");
+                  doc.setFontSize(11);
+                  doc.setTextColor(20); // Almost black
+                  
+                  const splitText = doc.splitTextToSize(text, pageWidth - (margin * 2));
+                  doc.text(splitText, margin, yPos);
+                  
+                  // Calculate height of text block + spacing
+                  const blockHeight = (splitText.length * 5); 
+                  yPos += blockHeight + 8; // Spacing between items
+                  
+                  // Divider line (light)
+                  if (index < reportContent.length - 1) {
+                      doc.setDrawColor(220, 220, 220);
+                      doc.line(margin, yPos - 4, pageWidth - margin, yPos - 4);
+                  }
+              });
+          } else {
+              doc.text("Cosmic interference prevented report generation. Please try again.", margin, yPos);
+          }
+
+          // Save File
+          const fileName = `Astro21_${user.name.replace(/\s+/g, '_')}_${type === 'weekly' ? 'Weekly' : 'Yearbook'}.pdf`;
+          doc.save(fileName);
+
+          // Update Limit
+          localStorage.setItem(`last_${type}_dl_${user.id || 'guest'}`, new Date().toISOString());
+
+      } catch (e) {
+          console.error("PDF Gen Error", e);
+          alert("Failed to generate PDF. Please try again.");
+      } finally {
+          setIsGeneratingPdf(false);
+      }
+  };
 
   const renderDaily = () => (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -78,6 +313,9 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
 
   const renderFullForecast = (type: 'weekly' | 'monthly') => {
       const content = type === 'weekly' ? horoscopeData?.weekly : horoscopeData?.monthly;
+      const hasAccess = user.isPremium || user.tier === 'member21';
+      const year = new Date().getFullYear();
+
       return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="bg-mystic-800/60 border border-white/10 rounded-2xl p-8 shadow-xl relative overflow-hidden min-h-[400px]">
@@ -98,8 +336,18 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                             <p className="text-mystic-100 text-lg leading-relaxed whitespace-pre-wrap">{content}</p>
                             <div className="mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
                                 <p className="text-xs text-mystic-500 italic">Insights generated for your natal chart alignment.</p>
-                                <button onClick={onSendYearlyReport} className="text-xs bg-white/5 hover:bg-white/10 text-gold-400 font-bold px-4 py-2 rounded-full border border-gold-500/20 transition-all">
-                                    Download Full Report
+                                <button 
+                                    onClick={() => handleDownloadReport(type)}
+                                    disabled={isGeneratingPdf}
+                                    className={`text-xs font-bold px-4 py-2 rounded-full border transition-all flex items-center gap-2 ${hasAccess ? 'bg-white/5 hover:bg-white/10 text-gold-400 border-gold-500/20' : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'}`}
+                                >
+                                    {!hasAccess && <span>🔒</span>}
+                                    {isGeneratingPdf 
+                                        ? 'Publishing PDF...' 
+                                        : type === 'weekly' 
+                                            ? 'Download Weekly PDF (Sun-Sat)' 
+                                            : `Download ${year} Yearbook (Jan-Dec)`
+                                    }
                                 </button>
                             </div>
                         </div>
@@ -111,26 +359,6 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
         </div>
       );
   };
-
-  const renderYearly = () => (
-      <div className="bg-gradient-to-br from-indigo-900/40 to-mystic-900 border border-indigo-500/30 rounded-2xl p-8 text-center animate-in fade-in">
-          <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-[0_0_30px_rgba(99,102,241,0.3)]">
-              📅
-          </div>
-          <h3 className="text-2xl font-serif text-white mb-2">Annual 2024-25 Report</h3>
-          <p className="text-mystic-300 max-w-md mx-auto mb-8">
-              Get a comprehensive month-by-month breakdown of your career, health, and relationships sent directly to your registered email.
-          </p>
-          
-          <button 
-            onClick={onSendYearlyReport}
-            className="bg-white hover:bg-mystic-100 text-mystic-900 font-bold px-8 py-3 rounded-xl shadow-lg transition-transform active:scale-[0.98] flex items-center gap-2 mx-auto"
-          >
-              <span>📧</span> Email My Report
-          </button>
-          <p className="text-xs text-mystic-500 mt-4">Available for: {user.contact}</p>
-      </div>
-  );
 
   return (
     <div className="flex flex-col h-full overflow-hidden p-4 md:p-0">
