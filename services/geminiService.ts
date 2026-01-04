@@ -19,7 +19,6 @@ const getCurrentUserId = (): string => {
 
 const trackUsageToDb = (prompt: string, response: string, feature: 'chat' | 'horoscope' = 'chat') => {
     // Estimate tokens: 1 token ~= 4 chars (Rough Estimate)
-    // Detailed analysis shows approx 0.25 tokens per char
     const inputTokens = Math.ceil(prompt.length / 4);
     const outputTokens = Math.ceil(response.length / 4);
     
@@ -31,50 +30,53 @@ const trackUsageToDb = (prompt: string, response: string, feature: 'chat' | 'hor
 const getAI = () => {
   if (!ai) {
     if (!process.env.API_KEY) {
-      console.error("API_KEY is missing from environment variables");
-      throw new Error("API Key missing");
+      console.warn("API_KEY missing.");
+      return null;
     }
     ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
   return ai;
 };
 
-export const initializeChat = async (customInstruction?: string): Promise<Chat> => {
+export const initializeChat = async (customInstruction?: string): Promise<Chat | null> => {
   const client = getAI();
+  if (!client) return null;
   
   if (customInstruction) {
     currentInstruction = customInstruction;
   }
 
-  chatSession = client.chats.create({
-    model: 'gemini-3-flash-preview',
-    config: {
-      systemInstruction: currentInstruction,
-      temperature: 0.7,
-      maxOutputTokens: 8192, // Increased to prevent truncation
-    }
-  });
-  return chatSession;
+  try {
+      chatSession = client.chats.create({
+        model: 'gemini-3-flash-preview',
+        config: {
+          systemInstruction: currentInstruction,
+          temperature: 0.7,
+          maxOutputTokens: 8192, 
+        }
+      });
+      return chatSession;
+  } catch (e) {
+      console.warn("Failed to create chat session.", e);
+      chatSession = null;
+      return null;
+  }
 };
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const sendMessageToGemini = async (message: string, isPremium: boolean = false): Promise<string> => {
   if (!chatSession) {
-    await initializeChat();
-  }
-  if (!chatSession) {
-    throw new Error("Failed to initialize chat session");
+      await initializeChat();
+      if (!chatSession) {
+          return "I am currently meditating in the cosmic void. Please check your connection or API key configuration.";
+      }
   }
 
-  const maxRetries = 3;
+  const maxRetries = 2;
   let attempt = 0;
 
-  // We now require full Deep Dive content for all users (to support unlock feature),
-  // so we do not strip the request for free users.
-  // The system instruction enforces the structure "Gist ... Deep Dive: ..."
   let apiPrompt = message;
-  
   if (isPremium) {
      apiPrompt = `${message} 
      
@@ -83,16 +85,22 @@ export const sendMessageToGemini = async (message: string, isPremium: boolean = 
 
   while (attempt < maxRetries) {
     try {
+      if (!chatSession) throw new Error("Session lost");
+      
       const result = await chatSession.sendMessage({
         message: apiPrompt
       });
-      const responseText = result.text || "The stars are clouded...";
+      
+      const responseText = result.text;
+      if (!responseText) throw new Error("Empty response");
       
       // Log DB Usage
       trackUsageToDb(apiPrompt, responseText, 'chat');
       
       return responseText;
     } catch (error: any) {
+      console.error("Gemini API Error:", error);
+      
       const isQuotaError = error?.status === 429 || error?.code === 429 || error?.message?.includes('quota');
       if (isQuotaError) {
         attempt++;
@@ -101,14 +109,17 @@ export const sendMessageToGemini = async (message: string, isPremium: boolean = 
             continue;
         }
       }
-      return "A cosmic interference disrupted my connection. Please try again.";
+      
+      return "The stars are clouded by interference. Please try again in a moment.";
     }
   }
-  return "Connection failed.";
+  return "The stars are clouded by interference. Please try again in a moment.";
 };
 
 export const generateJsonContent = async (prompt: string, maxTokens: number = 4000, schema?: Schema): Promise<any> => {
     const client = getAI();
+    if (!client) return null;
+
     try {
         const response = await client.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -123,7 +134,6 @@ export const generateJsonContent = async (prompt: string, maxTokens: number = 40
         let text = response.text;
         if (!text) return null;
         
-        // Log DB Usage
         trackUsageToDb(prompt, text, 'horoscope');
         
         if (text.trim().startsWith('```')) {
@@ -133,14 +143,8 @@ export const generateJsonContent = async (prompt: string, maxTokens: number = 40
         try {
             return JSON.parse(text);
         } catch (parseError) {
-            console.warn("JSON Parse failed, attempting standard cleanup", parseError);
             const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            try {
-                 return JSON.parse(cleanText);
-            } catch (e2) {
-                 console.error("Final JSON Parse Error. Raw text:", text);
-                 return null; 
-            }
+            try { return JSON.parse(cleanText); } catch (e2) { return null; }
         }
     } catch (e) {
         console.error("JSON Generation Error:", e);

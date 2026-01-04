@@ -145,6 +145,7 @@ export const verifyAuthOtp = async (contact: string, token: string): Promise<{ s
             const { data: profile } = await supabase.from('profiles').select('id').eq('id', userId).single();
             if (!profile) {
                 // Ensure we only insert columns that exist in the DB schema provided by user
+                // Use NULL instead of undefined to be explicit for SQL
                 await supabase.from('profiles').insert([{
                     id: userId,
                     contact: contact,
@@ -274,7 +275,7 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
 export const saveTransaction = async (tx: Transaction) => {
   if (!supabase) return;
   try { 
-      await supabase.from('transactions').insert([{ 
+      const { error } = await supabase.from('transactions').insert([{ 
           id: tx.id, 
           user_id: tx.userId, 
           user_name: tx.userName, 
@@ -284,7 +285,8 @@ export const saveTransaction = async (tx: Transaction) => {
           status: tx.status, 
           created_at: new Date().toISOString() 
       }]); 
-  } catch (e) { console.error("DB: Failed to save transaction", e); }
+      if (error) console.error("DB: Transaction save failed", error);
+  } catch (e) { console.error("DB: Exception saving transaction", e); }
 };
 
 export const fetchProfiles = async (): Promise<any[]> => {
@@ -293,18 +295,18 @@ export const fetchProfiles = async (): Promise<any[]> => {
         const { data, error } = await supabase.from('profiles').select('*');
         
         if (error) {
-            console.error("DB: Error fetching profiles:", error);
+            console.error("DB: Error fetching profiles (likely RLS restricted):", error);
             return [];
         }
         
         if (!data || data.length === 0) {
-            console.log("DB: No profiles found (or RLS restricted).");
+            // RLS often returns empty array instead of error
             return [];
         }
 
         // Standardize to CamelCase for App Consistency
         const mappedUsers = data.map((u: any) => {
-            // DERIVE TIER LOGIC IF COLUMN MISSING
+            // DERIVE TIER LOGIC IF COLUMN MISSING OR EXPLICITLY SET
             let tier = u.tier || 'free';
             const now = new Date();
             const expiry = u.subscription_expiry ? new Date(u.subscription_expiry) : null;
@@ -330,7 +332,8 @@ export const fetchProfiles = async (): Promise<any[]> => {
                 birthTime: u.birth_time,
                 birthPlace: u.birth_place,
                 createdAt: u.created_at,
-                chatHistory: u.chat_history 
+                chatHistory: u.chat_history,
+                subscriptionExpiry: expiry // Ensure expiry is passed
             };
         });
 
@@ -351,6 +354,7 @@ export const updateProfile = async (id: string, updates: any) => {
     if (updates.isPremium !== undefined) dbUpdates.is_premium = updates.isPremium;
     if (updates.dailyQuestionsLeft !== undefined) dbUpdates.daily_questions_left = updates.dailyQuestionsLeft;
     if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.tier !== undefined) dbUpdates.tier = updates.tier;
     
     // Handle Subscription Expiry update (crucial for Tier management)
     if (updates.subscriptionExpiry !== undefined) dbUpdates.subscription_expiry = updates.subscriptionExpiry;
@@ -418,28 +422,39 @@ export const generateUniqueUsername = async (fullName: string): Promise<string> 
 export const saveUserProfile = async (user: UserState, password?: string, messages?: Message[]) => {
   if (!supabase || !user.contact) return;
   try {
+      // HANDLE EXPIRY: Can be String or Date object. Convert to ISO String.
+      let expiryVal = null;
+      if (user.subscriptionExpiry) {
+          if (typeof user.subscriptionExpiry === 'string') {
+              expiryVal = user.subscriptionExpiry;
+          } else if (user.subscriptionExpiry instanceof Date) {
+              expiryVal = user.subscriptionExpiry.toISOString();
+          }
+      }
+
+      // Member 21 Safety Check: Ensure expiry is set if tier suggests it
+      if (user.tier === 'member21' && !expiryVal) {
+          const d = new Date();
+          d.setFullYear(d.getFullYear() + 3);
+          expiryVal = d.toISOString();
+      }
+
       const payload: any = {
         contact: user.contact,
         name: user.name || '',
-        gender: user.gender || '',
-        birth_date: user.birthDate || '', // Storing as snake_case
-        birth_time: user.birthTime || '', // Storing as snake_case
-        birth_place: user.birthPlace || '', // Storing as snake_case
+        gender: user.gender || null, // Send NULL instead of empty string for optional fields
+        birth_date: user.birthDate || null, // DATE type columns choke on empty strings
+        birth_time: user.birthTime || null, 
+        birth_place: user.birthPlace || null,
         is_premium: !!user.isPremium,
-        // tier: user.tier || 'free',  <-- REMOVED to prevent errors on missing column
         daily_questions_left: typeof user.dailyQuestionsLeft === 'number' ? user.dailyQuestionsLeft : 0,
-        subscription_expiry: user.subscriptionExpiry ? user.subscriptionExpiry.toISOString() : null
+        subscription_expiry: expiryVal,
+        tier: user.tier || 'free' // Force sending tier if column exists
       };
       
       // If the user is Member 21, ensure we set specific flags that allow us to derive it later
       if (user.tier === 'member21') {
-          // Member 21: Not premium (no daily refill), but valid long expiry
           payload.is_premium = false;
-          if (!payload.subscription_expiry) {
-              const d = new Date();
-              d.setFullYear(d.getFullYear() + 3);
-              payload.subscription_expiry = d.toISOString();
-          }
       }
 
       if (password) payload.password = await hashPassword(password);
@@ -447,9 +462,11 @@ export const saveUserProfile = async (user: UserState, password?: string, messag
 
       // Prefer ID if available (UUID), otherwise fallback to contact
       if (user.id) {
-         await supabase.from('profiles').update(payload).eq('id', user.id);
+         const { error } = await supabase.from('profiles').update(payload).eq('id', user.id);
+         if (error) console.error("DB: Update failed", error);
       } else {
-         await supabase.from('profiles').upsert(payload, { onConflict: 'contact' });
+         const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'contact' });
+         if (error) console.error("DB: Upsert failed", error);
       }
   } catch (e) { console.error("DB: Exception saving profile", e); }
 };

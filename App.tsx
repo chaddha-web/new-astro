@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Sender, Message, UserState, AppView, Astrologer, MessageType, CallState, Product, Earnings, Transaction, HoroscopeData, Language, CommunicationLog } from './types';
-import { INITIAL_DAILY_LIMIT, PREMIUM_DAILY_LIMIT, generateSystemInstruction, SUGGESTED_QUESTIONS, TOPIC_QUESTIONS, RAZORPAY_KEY_ID, TRANSLATIONS, MOCK_PRODUCTS, MOCK_ASTROLOGERS, formatDisplayName } from './constants';
+import { INITIAL_DAILY_LIMIT, PREMIUM_DAILY_LIMIT, generateSystemInstruction, SUGGESTED_QUESTIONS, TOPIC_QUESTIONS, RAZORPAY_KEY_ID, TEST_RAZORPAY_KEY, TRANSLATIONS, MOCK_PRODUCTS, MOCK_ASTROLOGERS, formatDisplayName } from './constants';
 import { initializeChat, sendMessageToGemini, generateJsonContent } from './services/geminiService';
 import { fetchProducts, fetchTransactions, saveTransaction, fetchUserProfile, saveUserProfile, seedDatabase, fetchAstrologers, subscribeToTable, logCommunication, generateUniqueUsername, generateReferenceId, fetchCachedReading, saveCachedReading, fetchProfiles, fetchCommunicationLogs } from './services/dbService';
 import { verifyPassword, generateJWT, verifyJWT } from './services/securityService';
@@ -463,7 +463,7 @@ export default function App() {
 
             const newUser: UserState = { 
                 ...userState, 
-                id: data.userId, 
+                id: data.userId, // Critical: Ensure ID is correctly passed
                 name: uniqueName, 
                 contact: data.contact, 
                 gender: data.gender, 
@@ -477,14 +477,19 @@ export default function App() {
                 subscriptionExpiry: expiryDate
             };
             
+            // 1. UPDATE STATE
+            setUserState(newUser); 
+            
+            // 2. SAVE PROFILE FIRST (Wait for it!)
+            await saveUserProfile(newUser, data.password);
+            
+            // 3. THEN SAVE TRANSACTION (Prevent Foreign Key Error)
             if (selectedTier === 'premium') {
                 addTransaction(299, 'Subscription', `Premium Activation`, newUser);
             } else if (selectedTier === 'member21') {
                 addTransaction(21, 'Subscription', `Member 21 (3 Years)`, newUser);
             }
 
-            setUserState(newUser); 
-            await saveUserProfile(newUser, data.password);
             const token = generateJWT(newUser.contact || 'User');
             localStorage.setItem('astro_token', token);
             
@@ -588,7 +593,39 @@ export default function App() {
       setTransactions(p=>[tx,...p]); saveTransaction(tx); 
   };
   
-  const proceedToRazorpay = () => { if(pendingPayment && window.Razorpay) { const rzp = new window.Razorpay({ key: RAZORPAY_KEY_ID, amount: pendingPayment.amount*100, currency: "INR", name: "ASTRO-VASTU", description: pendingPayment.description, handler: () => { pendingPayment.onSuccess(); setShowPaymentConfirmation(false); }, prefill: { contact: pendingPayment.contact } }); rzp.open(); } else alert("Razorpay offline"); };
+  const proceedToRazorpay = () => { 
+      if(pendingPayment && window.Razorpay) { 
+          // Helper to create options safely
+          const createOptions = (key: string) => ({ 
+              key: key.trim(), // Ensure no whitespace
+              amount: pendingPayment.amount * 100, 
+              currency: "INR", 
+              name: "ASTRO-VASTU", 
+              description: pendingPayment.description, 
+              handler: () => { pendingPayment.onSuccess(); setShowPaymentConfirmation(false); }, 
+              prefill: { contact: pendingPayment.contact },
+              theme: { color: "#DAA520" }
+          });
+          
+          try {
+              // Attempt with configured key (Primary)
+              // Ensure we fallback to Test if Primary is missing or obviously garbage (empty)
+              const primaryKey = RAZORPAY_KEY_ID && RAZORPAY_KEY_ID.length > 5 ? RAZORPAY_KEY_ID : TEST_RAZORPAY_KEY;
+              
+              const rzp = new window.Razorpay(createOptions(primaryKey));
+              rzp.open();
+          } catch (e) {
+              console.warn("Primary Key Failed, falling back to Test Key");
+              try {
+                  const rzpTest = new window.Razorpay(createOptions(TEST_RAZORPAY_KEY));
+                  rzpTest.open();
+              } catch (e2) {
+                  alert("Payment Gateway Unavailable. Please try again later.");
+              }
+          }
+      } else alert("Razorpay offline"); 
+  };
+
   const initiateProductPurchase = (p: Product) => { setSelectedProductForPurchase(p); setShippingDetails({ address:'', city:'', pincode:'', phone:'' }); setShowAddressModal(true); };
   const confirmPurchaseWithAddress = () => { if(!selectedProductForPurchase) return; initiatePayment(selectedProductForPurchase.price, selectedProductForPurchase.name, () => { addTransaction(selectedProductForPurchase!.price, 'Product', selectedProductForPurchase!.name); setMessages(p=>[...p, {id:generateId(), text:`Purchased ${selectedProductForPurchase!.name}`, sender:Sender.SYSTEM, timestamp:new Date()}]); setShowAddressModal(false); }); };
   const handleUnlockMessage = (id: string) => setMessages(p => p.map(m => m.id===id ? {...m, isLocked:false} : m));

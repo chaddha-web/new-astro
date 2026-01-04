@@ -3,7 +3,8 @@ import { Astrologer, Product, Language, Transaction, SubscriptionTier, Communica
 
 // Hardcoded Constants
 export const APP_NAME = "Astro21";
-export const RAZORPAY_KEY_ID = "rzp_test_1DP5mmOlF5G5ag";
+export const TEST_RAZORPAY_KEY = "rzp_test_1DP5mmOlF5G5ag";
+export const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || TEST_RAZORPAY_KEY;
 
 /* Added missing Agora constants for call integration */
 export const AGORA_APP_ID = "f7c6e6b4e6b4e6b4e6b4e6b4e6b4e6b4"; // Placeholder App ID

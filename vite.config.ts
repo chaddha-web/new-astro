@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => {
       'process.env': {
         API_KEY: env.API_KEY,
         SUPABASE_URL: env.SUPABASE_URL,
-        SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY
+        SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY,
+        RAZORPAY_KEY_ID: env.RAZORPAY_KEY_ID
       }
     },
     build: {
