@@ -5,6 +5,7 @@ import { INITIAL_DAILY_LIMIT, PREMIUM_DAILY_LIMIT, generateSystemInstruction, SU
 import { initializeChat, sendMessageToGemini, generateJsonContent } from './services/geminiService';
 import { fetchProducts, fetchTransactions, saveTransaction, fetchUserProfile, saveUserProfile, seedDatabase, fetchAstrologers, subscribeToTable, logCommunication, generateUniqueUsername, generateReferenceId, fetchCachedReading, saveCachedReading, fetchProfiles, fetchCommunicationLogs } from './services/dbService';
 import { verifyPassword, generateJWT, verifyJWT } from './services/securityService';
+import { supabase } from './services/supabaseClient'; // Imported for safety check
 import StarBackground from './components/Layout/StarBackground';
 import MessageBubble from './components/Chat/MessageBubble';
 import ThinkingBubble from './components/Chat/ThinkingBubble';
@@ -441,11 +442,20 @@ export default function App() {
       setIsGlobalLoading(true);
       setLoadingText("Creating Cosmic Profile...");
 
+      // SAFETY: Ensure we have the AUTH ID if it wasn't passed from Onboarding
+      let finalUserId = data.userId;
+      if (!finalUserId && supabase) {
+          const { data: authData } = await supabase.auth.getUser();
+          if (authData.user) {
+              finalUserId = authData.user.id;
+          }
+      }
+
       // 1. Create Base User State
       const uniqueName = data.name;
       const baseUser: UserState = { 
           ...userState, 
-          id: data.userId, // This should come from Auth
+          id: finalUserId, // Critical for Foreign Key constraints
           name: uniqueName, 
           contact: data.contact, 
           gender: data.gender, 

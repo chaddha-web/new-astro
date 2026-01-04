@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { sendAuthOtp, verifyAuthOtp, fetchUserProfile } from '../../services/dbService';
+import { sendAuthOtp, verifyAuthOtp, fetchUserProfile, saveUserProfile } from '../../services/dbService';
+import { UserState } from '../../types';
 
 export interface OnboardingData {
   contact: string;
@@ -92,8 +93,42 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
       }
   }, [contactInput, countryCode, isEmailDetected]);
 
-  const handleNext = (e?: React.FormEvent) => {
+  const handleNext = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    
+    // STEP 4 COMPLETION TRIGGER: SAVE FULL PROFILE
+    if (step === 4) {
+        setIsLoading(true);
+        try {
+            // Construct the UserState for DB save
+            // We use 'verifiedUserId' obtained from OTP step
+            const userPayload: UserState = {
+                id: verifiedUserId,
+                contact: formData.contact,
+                name: formData.name,
+                gender: formData.gender,
+                birthDate: formData.date,
+                birthTime: formData.time,
+                birthPlace: formData.place,
+                dailyQuestionsLeft: 1, // Default free limit
+                isPremium: false,
+                tier: 'free',
+                hasOnboarded: false, // Not fully finished until payment/final step
+                language: 'en'
+            };
+            
+            // Upsert full details. Password was saved earlier or can be updated here if needed.
+            await saveUserProfile(userPayload, formData.password);
+            
+        } catch (e) {
+            console.error("Failed to save profile at Step 4", e);
+            // Optionally block progress, but we'll allow proceed to keep flow moving 
+            // and rely on final save in App.tsx as backup
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
     setStep(prev => prev + 1);
   };
 
@@ -138,26 +173,63 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
       const contact = isEmailDetected ? cleanInput : `${countryCode}${cleanInput}`;
       const result = await verifyAuthOtp(contact, otp.trim());
 
-      setIsLoading(false);
-
       if (result.success) {
           setIsOtpVerified(true);
           if (result.userId) {
               setVerifiedUserId(result.userId);
               setFormData(prev => ({ ...prev, userId: result.userId }));
+              
+              // IMMEDIATE STORAGE: Create Skeletal Profile
+              // Stores only Contact and ID initially.
+              try {
+                  const initialUser: UserState = {
+                      id: result.userId,
+                      contact: contact,
+                      name: '', // Placeholder
+                      dailyQuestionsLeft: 0,
+                      isPremium: false,
+                      tier: 'free',
+                      hasOnboarded: false,
+                      language: 'en'
+                  };
+                  // We don't save password here yet, just the row
+                  await saveUserProfile(initialUser);
+                  console.log("Initial Skeletal Profile Created");
+              } catch (saveErr) {
+                  console.error("Failed to create skeletal profile", saveErr);
+              }
           }
       } else {
           setErrorMsg(result.message || "Invalid Code.");
       }
+      setIsLoading(false);
   };
 
-  const handleSetPasswordAndContinue = (e: React.FormEvent) => {
+  const handleSetPasswordAndContinue = async (e: React.FormEvent) => {
       e.preventDefault();
       if (password.length < 4) {
           setErrorMsg("Password must be at least 4 characters.");
           return;
       }
       setFormData(prev => ({ ...prev, password: password }));
+      
+      // Update password in DB now that we have it
+      if (verifiedUserId) {
+          try {
+             // Pass password to saveUserProfile which handles hashing
+             await saveUserProfile({ 
+                 id: verifiedUserId, 
+                 contact: formData.contact, 
+                 dailyQuestionsLeft: 0, 
+                 isPremium: false, 
+                 tier: 'free',
+                 hasOnboarded: false,
+                 language: 'en',
+                 name: '' // Keep skeletal
+             }, password);
+          } catch (e) { console.error("Password update failed", e); }
+      }
+
       handleNext();
   };
 
@@ -306,7 +378,9 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
             <label className="text-xs uppercase tracking-widest text-mystic-400 font-bold ml-1">City, State, Country</label>
             <input type="text" required value={formData.place} onChange={e => setFormData({...formData, place: e.target.value})} className="w-full bg-mystic-900/50 border border-mystic-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:border-gold-500 transition-all placeholder-mystic-600 font-bold tracking-wide" placeholder="e.g. Mumbai, Maharashtra" autoFocus />
         </div>
-        <button type="submit" disabled={!formData.place} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-4 rounded-xl shadow-lg transition-all">Unlock Your Destiny →</button>
+        <button type="submit" disabled={!formData.place || isLoading} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center">
+            {isLoading ? <div className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></div> : 'Unlock Your Destiny →'}
+        </button>
     </form>
   );
 

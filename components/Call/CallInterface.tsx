@@ -204,6 +204,8 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const safeImage = partnerImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80';
+
   return (
     <div className="fixed inset-0 z-[100] bg-gray-900 flex flex-col animate-in fade-in duration-300 font-sans">
       
@@ -213,7 +215,7 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
          <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-500 ${remoteUsers.length > 0 && remoteUsers[0].videoTrack ? 'opacity-0' : 'opacity-100'}`}>
             <div className="flex flex-col items-center z-10">
                  <div className={`w-32 h-32 md:w-48 md:h-48 rounded-full border-4 shadow-[0_0_50px_rgba(234,179,8,0.3)] overflow-hidden mb-6 ${callStatus === 'ended' ? 'border-red-500 grayscale' : 'border-gold-500/50 animate-pulse'}`}>
-                    <img src={partnerImage} alt={partnerName} className="w-full h-full object-cover" />
+                    <img src={safeImage} alt={partnerName} className="w-full h-full object-cover" />
                  </div>
                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">{partnerName}</h2>
                  
@@ -224,7 +226,7 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
                  {callStatus === 'ended' && <p className="text-red-500 text-3xl font-bold">Call Ended</p>}
             </div>
             {/* Background blurred image */}
-            <img src={partnerImage} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-3xl" />
+            <img src={safeImage} className="absolute inset-0 w-full h-full object-cover opacity-20 blur-3xl" />
          </div>
 
          {/* Actual Remote Video Container */}

@@ -141,10 +141,7 @@ export const verifyAuthOtp = async (contact: string, token: string): Promise<{ s
             const userId = data.session.user.id;
             await logCommunication(isEmail ? 'email' : 'sms', contact, 'inbound', 'completed', 'OTP Verified');
             
-            // NOTE: We do NOT insert a skeletal profile here anymore.
-            // We wait for saveUserProfile to be called with the full form data.
-            // This prevents "Name = Email" and NULL field issues.
-            
+            // We return the userId here so the UI can immediately trigger a skeletal profile creation.
             return { success: true, userId: userId };
         } else {
             return { success: false, message: "Invalid code." };
