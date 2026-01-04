@@ -297,15 +297,18 @@ export const fetchProfiles = async (): Promise<any[]> => {
         // Standardize to CamelCase for App Consistency
         const mappedUsers = data.map((u: any) => {
             // DERIVE TIER LOGIC IF COLUMN MISSING OR EXPLICITLY SET
-            let tier = u.tier || 'free';
+            let tier = 'free';
             const now = new Date();
             const expiry = u.subscription_expiry ? new Date(u.subscription_expiry) : null;
             
-            if (tier === 'free' || !tier) {
-                if (u.is_premium) {
-                    tier = 'premium';
-                } else if (expiry && expiry > now && expiry.getFullYear() - now.getFullYear() >= 2) {
-                    // Member 21 usually has a long expiry (3 years)
+            // Logic: if expiry is years away (e.g. > 2 years), it's Member 21
+            // if expiry is roughly a month away, it's premium
+            // if expired or null, free.
+            
+            if (u.is_premium) {
+                tier = 'premium';
+            } else if (expiry && expiry > now) {
+                if (expiry.getFullYear() - now.getFullYear() >= 2) {
                     tier = 'member21';
                 }
             }
@@ -344,12 +347,13 @@ export const updateProfile = async (id: string, updates: any) => {
     if (updates.isPremium !== undefined) dbUpdates.is_premium = updates.isPremium;
     if (updates.dailyQuestionsLeft !== undefined) dbUpdates.daily_questions_left = updates.dailyQuestionsLeft;
     if (updates.name !== undefined) dbUpdates.name = updates.name;
-    if (updates.tier !== undefined) dbUpdates.tier = updates.tier;
     
     // Handle Subscription Expiry update (crucial for Tier management)
     if (updates.subscriptionExpiry !== undefined) dbUpdates.subscription_expiry = updates.subscriptionExpiry;
     // Allow direct snake_case passing too
     if (updates.subscription_expiry !== undefined) dbUpdates.subscription_expiry = updates.subscription_expiry;
+
+    // REMOVED: dbUpdates.tier assignment because 'tier' column does not exist in DB
 
     await supabase.from('profiles').update(dbUpdates).eq('id', id); 
 };
@@ -369,15 +373,14 @@ export const fetchUserProfile = async (contact: string | string[]): Promise<{ pr
       }
       
       // DERIVE TIER FROM DATA (Robust against missing column)
-      let tier = data.tier || 'free';
+      let tier = 'free';
       const now = new Date();
       const expiry = data.subscription_expiry ? new Date(data.subscription_expiry) : null;
       
-      if (tier === 'free' || !tier) {
-          if (data.is_premium) {
-              tier = 'premium';
-          } else if (expiry && expiry > now && expiry.getFullYear() - now.getFullYear() >= 2) {
-              // Member 21: Not premium, but has long expiry
+      if (data.is_premium) {
+          tier = 'premium';
+      } else if (expiry && expiry > now) {
+          if (expiry.getFullYear() - now.getFullYear() >= 2) {
               tier = 'member21';
           }
       }
@@ -438,8 +441,8 @@ export const saveUserProfile = async (user: UserState, password?: string, messag
         birth_place: user.birthPlace || null,
         is_premium: !!user.isPremium,
         daily_questions_left: typeof user.dailyQuestionsLeft === 'number' ? user.dailyQuestionsLeft : 0,
-        subscription_expiry: expiryVal,
-        tier: user.tier || 'free' // Force sending tier if column exists
+        subscription_expiry: expiryVal
+        // REMOVED: tier field assignment to prevent DB error
       };
       
       // If the user is Member 21, ensure we set specific flags that allow us to derive it later
