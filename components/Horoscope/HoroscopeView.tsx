@@ -70,8 +70,6 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
               doc.setFont("helvetica", "bold");
               
               // Rotate context for diagonal text
-              // We simulate rotation by using a transformation matrix if needed, 
-              // but jsPDF text options has 'angle'
               doc.text("astro21.io", pageWidth / 2, pageHeight / 2, {
                   align: "center",
                   angle: 45,
@@ -127,7 +125,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
           doc.setFontSize(11);
           doc.setTextColor(50);
           doc.text(`Seeker: ${user.name}`, margin + 5, yPos);
-          doc.text(`Sign: ${horoscopeData?.starSign || 'Unknown'}`, pageWidth - margin - 5, yPos, { align: "right" });
+          doc.text(`Sign: ${horoscopeData?.starSign || (user.birthDate ? 'Unknown (using birth date)' : 'Unknown')}`, pageWidth - margin - 5, yPos, { align: "right" });
           
           yPos += 8;
           doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, margin + 5, yPos);
@@ -137,46 +135,61 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
 
           // Content Generation via AI
           let reportContent = [];
+          const signInfo = horoscopeData?.starSign ? `Star Sign: ${horoscopeData.starSign}` : (user.birthDate ? `Born: ${user.birthDate}` : '');
           
           if (type === 'weekly') {
-              const prompt = `Generate a 7-day horoscope for ${user.name} (${horoscopeData?.starSign}) starting this Sunday to Saturday. 
-              Output JSON array: [{ "day": "Sunday", "forecast": "..." }, ...]. 
+              const prompt = `Generate a 7-day horoscope for ${user.name} ${signInfo}.
+              Period: This week (Sunday to Saturday).
+              Output JSON object with a field "items" which is an array of objects.
+              Each object must have "title" (Day Name) and "forecast" (Prediction). 
               Tone: Mystical yet practical. Max 40 words per day.`;
               
               const schema: Schema = {
-                  type: Type.ARRAY,
-                  items: {
-                      type: Type.OBJECT,
-                      properties: {
-                          day: { type: Type.STRING },
-                          forecast: { type: Type.STRING }
-                      },
-                      required: ['day', 'forecast']
+                  type: Type.OBJECT,
+                  properties: {
+                      items: {
+                          type: Type.ARRAY,
+                          items: {
+                              type: Type.OBJECT,
+                              properties: {
+                                  title: { type: Type.STRING },
+                                  forecast: { type: Type.STRING }
+                              },
+                              required: ['title', 'forecast']
+                          }
+                      }
                   }
               };
               
-              const data = await generateJsonContent(prompt, 2000, schema);
-              reportContent = data || [];
+              const data = await generateJsonContent(prompt, 2500, schema);
+              reportContent = data?.items || [];
+
           } else {
               const year = new Date().getFullYear();
-              const prompt = `Generate a 12-month horoscope for ${user.name} (${horoscopeData?.starSign}) for the year ${year}, January to December. 
-              Output JSON array: [{ "month": "January", "forecast": "..." }, ...]. 
+              const prompt = `Generate a 12-month horoscope for ${user.name} ${signInfo} for the year ${year}. 
+              Output JSON object with a field "items" which is an array of objects.
+              Each object must have "title" (Month Name) and "forecast" (Prediction).
               Tone: Mystical yet practical. Max 40 words per month.`;
               
               const schema: Schema = {
-                  type: Type.ARRAY,
-                  items: {
-                      type: Type.OBJECT,
-                      properties: {
-                          month: { type: Type.STRING },
-                          forecast: { type: Type.STRING }
-                      },
-                      required: ['month', 'forecast']
+                  type: Type.OBJECT,
+                  properties: {
+                      items: {
+                          type: Type.ARRAY,
+                          items: {
+                              type: Type.OBJECT,
+                              properties: {
+                                  title: { type: Type.STRING },
+                                  forecast: { type: Type.STRING }
+                              },
+                              required: ['title', 'forecast']
+                          }
+                      }
                   }
               };
               
-              const data = await generateJsonContent(prompt, 3000, schema);
-              reportContent = data || [];
+              const data = await generateJsonContent(prompt, 4000, schema);
+              reportContent = data?.items || [];
           }
 
           // Render Content Loop
@@ -185,7 +198,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
 
           if (reportContent && reportContent.length > 0) {
               reportContent.forEach((item: any, index: number) => {
-                  const title = item.day || item.month;
+                  const title = item.title || item.day || item.month;
                   const text = item.forecast;
 
                   // Dynamic Check for Page Break
@@ -207,7 +220,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                   doc.setFillColor(...goldColor);
                   doc.circle(margin - 4, yPos - 1, 1.5, 'F');
                   
-                  doc.text(title.toUpperCase(), margin, yPos);
+                  doc.text(String(title).toUpperCase(), margin, yPos);
                   yPos += 6;
 
                   // Item Body
@@ -215,7 +228,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                   doc.setFontSize(11);
                   doc.setTextColor(20); // Almost black
                   
-                  const splitText = doc.splitTextToSize(text, pageWidth - (margin * 2));
+                  const splitText = doc.splitTextToSize(String(text), pageWidth - (margin * 2));
                   doc.text(splitText, margin, yPos);
                   
                   // Calculate height of text block + spacing
@@ -229,6 +242,8 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                   }
               });
           } else {
+              doc.setFont("helvetica", "italic");
+              doc.setTextColor(150);
               doc.text("Cosmic interference prevented report generation. Please try again.", margin, yPos);
           }
 
