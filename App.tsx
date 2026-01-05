@@ -637,7 +637,7 @@ export default function App() {
               key: key.trim(), // Ensure no whitespace
               amount: pendingPayment.amount * 100, 
               currency: "INR", 
-              name: "ASTRO-VASTU", 
+              name: "Astro21", 
               description: pendingPayment.description, 
               handler: () => { pendingPayment.onSuccess(); setShowPaymentConfirmation(false); }, 
               prefill: { contact: pendingPayment.contact },
