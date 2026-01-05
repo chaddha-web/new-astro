@@ -40,6 +40,7 @@ export const generateReferenceId = (type: 'Product' | 'Subscription' | 'Dakshina
 
 // --- NATAL CACHE ---
 export const fetchCachedReading = async (key: string): Promise<string | null> => {
+    console.log("⬆️ [DB Sending] fetchCachedReading:", key);
     if (!supabase) return null;
     try {
         const { data, error } = await supabase.from('natal_cache').select('response').eq('id', key).maybeSingle();
@@ -48,7 +49,11 @@ export const fetchCachedReading = async (key: string): Promise<string | null> =>
             if (error.code !== 'PGRST116') logError('fetchCachedReading', error);
             return null;
         }
-        if (!data) return null;
+        if (!data) {
+            console.log("⬇️ [DB Success] fetchCachedReading (Miss):", key);
+            return null;
+        }
+        console.log("⬇️ [DB Success] fetchCachedReading (Hit):", key);
         return data.response;
     } catch (e) { 
         logError('fetchCachedReading:Exception', e);
@@ -57,12 +62,17 @@ export const fetchCachedReading = async (key: string): Promise<string | null> =>
 };
 
 export const saveCachedReading = async (key: string, response: string) => {
+    console.log("⬆️ [DB Sending] saveCachedReading:", key);
     if (!supabase) return;
-    try { await supabase.from('natal_cache').upsert({ id: key, response }, { onConflict: 'id' }); } 
+    try { 
+        await supabase.from('natal_cache').upsert({ id: key, response }, { onConflict: 'id' }); 
+        console.log("⬇️ [DB Success] saveCachedReading:", key);
+    } 
     catch (e) { logError('saveCachedReading', e); }
 };
 
 export const flushAllInsights = async (): Promise<boolean> => {
+    console.log("⬆️ [DB Sending] flushAllInsights");
     if (!supabase) return false;
     try {
         // Delete all rows in natal_cache. 
@@ -72,6 +82,7 @@ export const flushAllInsights = async (): Promise<boolean> => {
             logError('flushAllInsights', error);
             return false;
         }
+        console.log("⬇️ [DB Success] flushAllInsights");
         return true;
     } catch (e) {
         logError('flushAllInsights:Exception', e);
@@ -83,13 +94,19 @@ export const flushAllInsights = async (): Promise<boolean> => {
 export const logCommunication = async (type: CommunicationLog['type'], recipient: string, direction: CommunicationLog['direction'], status: CommunicationLog['status'], details?: string) => {
     const logId = generateReferenceId('Log');
     console.log(`[${logId}] ${direction.toUpperCase()} ${type} to ${recipient}: ${status}`);
+    
     if (supabase) {
-        try { await supabase.from('communications').insert([{ id: logId, type, recipient, direction, status, details, timestamp: new Date().toISOString() }]); } 
+        console.log("⬆️ [DB Sending] logCommunication:", type, recipient);
+        try { 
+            await supabase.from('communications').insert([{ id: logId, type, recipient, direction, status, details, timestamp: new Date().toISOString() }]); 
+            console.log("⬇️ [DB Success] logCommunication");
+        } 
         catch (e) { logError('logCommunication', e); }
     }
 };
 
 export const fetchCommunicationLogs = async (): Promise<CommunicationLog[]> => {
+    console.log("⬆️ [DB Sending] fetchCommunicationLogs");
     if (!supabase) return [];
     try {
         const { data, error } = await supabase.from('communications').select('*').order('timestamp', { ascending: false });
@@ -97,6 +114,7 @@ export const fetchCommunicationLogs = async (): Promise<CommunicationLog[]> => {
             logError('fetchCommunicationLogs', error);
             return [];
         }
+        console.log("⬇️ [DB Success] fetchCommunicationLogs count:", data?.length);
         return data ? data.map((log: any) => ({ ...log })) : [];
     } catch (e) { return []; }
 };
@@ -104,6 +122,7 @@ export const fetchCommunicationLogs = async (): Promise<CommunicationLog[]> => {
 // --- TOKEN USAGE ---
 export const logTokenUsage = async (userId: string, feature: string, inputTokens: number, outputTokens: number) => {
     if (!supabase || !userId) return;
+    console.log("⬆️ [DB Sending] logTokenUsage:", userId, feature);
     try {
         await supabase.from('usage_logs').insert([{
             user_id: userId,
@@ -113,10 +132,12 @@ export const logTokenUsage = async (userId: string, feature: string, inputTokens
             total_tokens: inputTokens + outputTokens,
             timestamp: new Date().toISOString()
         }]);
+        console.log("⬇️ [DB Success] logTokenUsage");
     } catch (e) { logError('logTokenUsage', e); }
 };
 
 export const fetchUsageStats = async () => {
+    console.log("⬆️ [DB Sending] fetchUsageStats");
     if (!supabase) return { totalRequests: 0, estimatedTokens: 0 };
     try {
         // Optimally we would use a count query, but for now fetching limited data to aggregate locally
@@ -128,11 +149,13 @@ export const fetchUsageStats = async () => {
         }
         if (!data) return { totalRequests: 0, estimatedTokens: 0 };
         const totalTokens = data.reduce((acc, curr) => acc + (curr.total_tokens || 0), 0);
+        console.log("⬇️ [DB Success] fetchUsageStats");
         return { totalRequests: data.length, estimatedTokens: totalTokens };
     } catch (e) { return { totalRequests: 0, estimatedTokens: 0 }; }
 };
 
 export const fetchAllUsageLogs = async (limit = 100) => {
+    console.log("⬆️ [DB Sending] fetchAllUsageLogs limit:", limit);
     if (!supabase) return [];
     try {
         const { data, error } = await supabase
@@ -141,6 +164,7 @@ export const fetchAllUsageLogs = async (limit = 100) => {
             .order('timestamp', { ascending: false })
             .limit(limit);
         if (error) throw error;
+        console.log("⬇️ [DB Success] fetchAllUsageLogs count:", data?.length);
         return data;
     } catch (e) {
         logError('fetchAllUsageLogs', e);
@@ -151,6 +175,7 @@ export const fetchAllUsageLogs = async (limit = 100) => {
 // --- PAYOUTS & EARNINGS ---
 
 export const requestPayout = async (astrologerId: string, amount: number): Promise<boolean> => {
+    console.log("⬆️ [DB Sending] requestPayout:", astrologerId, amount);
     if (!supabase) return false;
     try {
         const { error } = await supabase.from('payouts').insert([{
@@ -166,6 +191,7 @@ export const requestPayout = async (astrologerId: string, amount: number): Promi
             logError('requestPayout', error);
             return false;
         }
+        console.log("⬇️ [DB Success] requestPayout");
         return true;
     } catch (e) {
         logError('requestPayout:Exception', e);
@@ -174,6 +200,7 @@ export const requestPayout = async (astrologerId: string, amount: number): Promi
 };
 
 export const fetchPayoutHistory = async (astrologerId: string): Promise<PayoutRecord[]> => {
+    console.log("⬆️ [DB Sending] fetchPayoutHistory:", astrologerId);
     if (!supabase) return [];
     try {
         const { data, error } = await supabase.from('payouts').select('*').eq('astrologer_id', astrologerId).order('created_at', { ascending: false });
@@ -181,6 +208,7 @@ export const fetchPayoutHistory = async (astrologerId: string): Promise<PayoutRe
             logError('fetchPayoutHistory', error);
             return [];
         }
+        console.log("⬇️ [DB Success] fetchPayoutHistory count:", data?.length);
         return data.map((p: any) => ({
             id: p.id,
             amount: p.amount,
@@ -195,6 +223,7 @@ export const fetchPayoutHistory = async (astrologerId: string): Promise<PayoutRe
 };
 
 export const fetchAdminPayoutRequests = async () => {
+    console.log("⬆️ [DB Sending] fetchAdminPayoutRequests");
     if (!supabase) return [];
     try {
         const { data, error } = await supabase
@@ -207,6 +236,7 @@ export const fetchAdminPayoutRequests = async () => {
             
         if (error) throw error;
         
+        console.log("⬇️ [DB Success] fetchAdminPayoutRequests count:", data?.length);
         return data.map((p: any) => ({
             id: p.id,
             astrologerId: p.astrologer_id,
@@ -223,10 +253,12 @@ export const fetchAdminPayoutRequests = async () => {
 };
 
 export const updatePayoutStatus = async (payoutId: string, status: 'Completed' | 'Rejected') => {
+    console.log("⬆️ [DB Sending] updatePayoutStatus:", payoutId, status);
     if (!supabase) return false;
     try {
         const { error } = await supabase.from('payouts').update({ status }).eq('id', payoutId);
         if (error) throw error;
+        console.log("⬇️ [DB Success] updatePayoutStatus");
         return true;
     } catch (e) {
         logError('updatePayoutStatus', e);
@@ -235,6 +267,7 @@ export const updatePayoutStatus = async (payoutId: string, status: 'Completed' |
 };
 
 export const fetchAstrologerEarnings = async (astrologerId: string): Promise<Earnings> => {
+    console.log("⬆️ [DB Sending] fetchAstrologerEarnings:", astrologerId);
     if (!supabase) return { chats: 0, products: 0, tips: 0, withdrawn: 0 };
     
     try {
@@ -244,7 +277,8 @@ export const fetchAstrologerEarnings = async (astrologerId: string): Promise<Ear
             .eq('related_entity_id', astrologerId);
 
         if (txError) {
-            logError('fetchAstrologerEarnings:Transactions', txError);
+            // Silence error if column is missing, likely old schema
+            if (txError.code !== '42703') logError('fetchAstrologerEarnings:Transactions', txError);
         }
 
         const earnings: Earnings = { chats: 0, products: 0, tips: 0, withdrawn: 0 };
@@ -273,6 +307,7 @@ export const fetchAstrologerEarnings = async (astrologerId: string): Promise<Ear
             earnings.withdrawn = payoutData.reduce((sum, p) => sum + (p.amount || 0), 0);
         }
 
+        console.log("⬇️ [DB Success] fetchAstrologerEarnings");
         return earnings;
 
     } catch (e) {
@@ -283,6 +318,7 @@ export const fetchAstrologerEarnings = async (astrologerId: string): Promise<Ear
 
 // --- AUTH ---
 export const sendAuthOtp = async (contact: string): Promise<{ success: boolean; message?: string; isRateLimit?: boolean }> => {
+    console.log("⬆️ [DB Sending] sendAuthOtp:", contact);
     if (!supabase) return { success: false, message: "System not initialized" };
     const isEmail = /[a-zA-Z@]/.test(contact);
     await logCommunication(isEmail ? 'email' : 'sms', contact, 'outbound', 'sent', 'OTP Requested');
@@ -306,11 +342,13 @@ export const sendAuthOtp = async (contact: string): Promise<{ success: boolean; 
             }
             throw error;
         }
+        console.log("⬇️ [DB Success] sendAuthOtp");
         return { success: true };
     } catch (e: any) { return { success: false, message: e.message }; }
 };
 
 export const verifyAuthOtp = async (contact: string, token: string): Promise<{ success: boolean; message?: string; userId?: string }> => {
+    console.log("⬆️ [DB Sending] verifyAuthOtp:", contact);
     if (!supabase) return { success: false, message: "System not initialized" };
     const isEmail = /[a-zA-Z@]/.test(contact);
 
@@ -328,6 +366,7 @@ export const verifyAuthOtp = async (contact: string, token: string): Promise<{ s
         if (data.session && data.session.user) {
             const userId = data.session.user.id;
             await logCommunication(isEmail ? 'email' : 'sms', contact, 'inbound', 'completed', 'OTP Verified');
+            console.log("⬇️ [DB Success] verifyAuthOtp");
             return { success: true, userId: userId };
         } else {
             return { success: false, message: "Invalid code." };
@@ -336,17 +375,20 @@ export const verifyAuthOtp = async (contact: string, token: string): Promise<{ s
 };
 
 export const resetUserPassword = async (contact: string, newPassword: string): Promise<{ success: boolean; message?: string }> => {
+    console.log("⬆️ [DB Sending] resetUserPassword:", contact);
     if (!supabase) return { success: false, message: "System not initialized" };
     try {
         const hashedPassword = await hashPassword(newPassword);
         const { error } = await supabase.from('profiles').update({ password: hashedPassword }).eq('contact', contact);
         if (error) throw error;
+        console.log("⬇️ [DB Success] resetUserPassword");
         return { success: true };
     } catch (e) { return { success: false, message: "Failed to update password." }; }
 };
 
 // --- SEEDING ---
 export const seedDatabase = async () => {
+    console.log("⬆️ [DB Sending] seedDatabase");
     if (!supabase) return;
     try {
         const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
@@ -359,6 +401,7 @@ export const seedDatabase = async () => {
             const a = MOCK_ASTROLOGERS.map(x => ({ name: x.name, specialty: x.specialty, rating: x.rating, reviews: x.reviews, price_per_min: x.pricePerMin, image_url: x.imageUrl, is_online: x.isOnline }));
             await supabase.from('astrologers').insert(a);
         }
+        console.log("⬇️ [DB Success] seedDatabase");
     } catch (e) {}
 };
 
@@ -369,46 +412,69 @@ export const subscribeToTable = (table: string, callback: (payload: any) => void
 
 // --- DATA FETCHING ---
 export const fetchAstrologers = async (): Promise<Astrologer[]> => {
+    console.log("⬆️ [DB Sending] fetchAstrologers");
     if (!supabase) return MOCK_ASTROLOGERS;
     try {
         const { data } = await supabase.from('astrologers').select('*').order('is_online', { ascending: false });
         if (!data) return MOCK_ASTROLOGERS;
+        console.log("⬇️ [DB Success] fetchAstrologers count:", data.length);
         return data.map((a: any) => ({ id: a.id, name: a.name, specialty: a.specialty, rating: a.rating, reviews: a.reviews, pricePerMin: a.price_per_min, imageUrl: a.image_url, isOnline: a.is_online }));
     } catch (e) { return MOCK_ASTROLOGERS; }
 };
 
 export const saveAstrologer = async (astro: Partial<Astrologer>) => {
+    console.log("⬆️ [DB Sending] saveAstrologer:", astro.name);
     if (!supabase) return;
     const payload = { name: astro.name, specialty: astro.specialty, rating: astro.rating, reviews: astro.reviews, price_per_min: astro.pricePerMin, image_url: astro.imageUrl, is_online: astro.isOnline };
     if (astro.id && astro.id.length > 10) await supabase.from('astrologers').update(payload).eq('id', astro.id);
     else await supabase.from('astrologers').insert([payload]);
+    console.log("⬇️ [DB Success] saveAstrologer");
 };
 
-export const deleteAstrologer = async (id: string) => { if (supabase) await supabase.from('astrologers').delete().eq('id', id); };
+export const deleteAstrologer = async (id: string) => { 
+    console.log("⬆️ [DB Sending] deleteAstrologer:", id);
+    if (supabase) {
+        await supabase.from('astrologers').delete().eq('id', id); 
+        console.log("⬇️ [DB Success] deleteAstrologer");
+    }
+};
 
 export const fetchProducts = async (): Promise<Product[]> => {
+  console.log("⬆️ [DB Sending] fetchProducts");
   if (!supabase) return MOCK_PRODUCTS;
   try {
       const { data } = await supabase.from('products').select('*');
       // Fix: Check if data is empty array and fallback to mock if so
       if (!data || data.length === 0) return MOCK_PRODUCTS;
+      console.log("⬇️ [DB Success] fetchProducts count:", data.length);
       return data.map((p: any) => ({ id: p.id, name: p.name, category: p.category, price: p.price, description: p.description, benefits: p.benefits, imageUrl: p.image_url }));
   } catch (e) { return MOCK_PRODUCTS; }
 };
 
 export const createProduct = async (product: Product): Promise<Product | null> => {
+  console.log("⬆️ [DB Sending] createProduct:", product.name);
   if (!supabase) return product;
   const payload = { name: product.name, category: product.category, price: product.price, description: product.description, benefits: product.benefits, image_url: product.imageUrl };
   let data, error;
   if (product.id && product.id.length > 10 && !product.id.startsWith('p')) { ({ data, error } = await supabase.from('products').update(payload).eq('id', product.id).select().single()); } 
   else { ({ data, error } = await supabase.from('products').insert([payload]).select().single()); }
   if (error) return null;
+  console.log("⬇️ [DB Success] createProduct");
   return { ...product, id: data.id, name: data.name, imageUrl: data.image_url, category: data.category };
 };
 
-export const deleteProductFromDb = async (id: string) => { if(supabase) { const {error} = await supabase.from('products').delete().eq('id', id); return !error; } return true; };
+export const deleteProductFromDb = async (id: string) => { 
+    console.log("⬆️ [DB Sending] deleteProductFromDb:", id);
+    if(supabase) { 
+        const {error} = await supabase.from('products').delete().eq('id', id); 
+        if(!error) console.log("⬇️ [DB Success] deleteProductFromDb");
+        return !error; 
+    } 
+    return true; 
+};
 
 export const fetchTransactions = async (): Promise<Transaction[]> => {
+  console.log("⬆️ [DB Sending] fetchTransactions");
   if (!supabase) return [];
   try {
       const { data, error } = await supabase.from('transactions').select('*');
@@ -432,6 +498,7 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
           _created_at: t.created_at 
       }));
 
+      console.log("⬇️ [DB Success] fetchTransactions count:", mapped.length);
       return mapped.sort((a: any, b: any) => {
           return new Date(b._created_at || 0).getTime() - new Date(a._created_at || 0).getTime();
       });
@@ -443,9 +510,10 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
 };
 
 export const saveTransaction = async (tx: Transaction) => {
+  console.log("⬆️ [DB Sending] saveTransaction:", tx.id);
   if (!supabase) return;
   try { 
-      const { error } = await supabase.from('transactions').insert([{ 
+      const payload: any = { 
           id: tx.id, 
           user_id: tx.userId, 
           user_name: tx.userName, 
@@ -455,12 +523,29 @@ export const saveTransaction = async (tx: Transaction) => {
           status: tx.status, 
           related_entity_id: tx.relatedEntityId || null,
           created_at: new Date().toISOString() 
-      }]); 
-      if (error) logError('saveTransaction', error);
+      };
+
+      const { error } = await supabase.from('transactions').insert([payload]); 
+      
+      if (error) {
+          // Fallback if 'related_entity_id' is missing in DB
+          if (error.code === '42703') {
+              console.warn("Missing 'related_entity_id' column. Saving transaction without it.");
+              delete payload.related_entity_id;
+              const { error: retryError } = await supabase.from('transactions').insert([payload]);
+              if (retryError) logError('saveTransaction:Retry', retryError);
+              else console.log("⬇️ [DB Success] saveTransaction (Retry)");
+          } else {
+              logError('saveTransaction', error);
+          }
+      } else {
+          console.log("⬇️ [DB Success] saveTransaction");
+      }
   } catch (e) { logError('saveTransaction:Exception', e); }
 };
 
 export const fetchProfiles = async (): Promise<any[]> => {
+    console.log("⬆️ [DB Sending] fetchProfiles");
     if (!supabase) return [];
     try {
         const { data, error } = await supabase.from('profiles').select('*');
@@ -501,6 +586,7 @@ export const fetchProfiles = async (): Promise<any[]> => {
             };
         });
 
+        console.log("⬇️ [DB Success] fetchProfiles count:", mappedUsers.length);
         return mappedUsers.sort((a: any, b: any) => {
             return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
         });
@@ -511,20 +597,34 @@ export const fetchProfiles = async (): Promise<any[]> => {
 };
 
 export const updateProfile = async (id: string, updates: any) => { 
+    console.log("⬆️ [DB Sending] updateProfile:", id);
     if(!supabase) return;
     const dbUpdates: any = {};
     if (updates.isPremium !== undefined) dbUpdates.is_premium = updates.isPremium;
     if (updates.dailyQuestionsLeft !== undefined) dbUpdates.daily_questions_left = updates.dailyQuestionsLeft;
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.subscriptionExpiry !== undefined) dbUpdates.subscription_expiry = updates.subscriptionExpiry;
-    if (updates.subscription_expiry !== undefined) dbUpdates.subscription_expiry = updates.subscription_expiry;
+    if (updates.subscription_expiry !== undefined) dbUpdates.subscription_expiry = updates.subscriptionExpiry;
     if (updates.connectedAstrologerId !== undefined) dbUpdates.connected_astrologer_id = updates.connectedAstrologerId;
 
     const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', id); 
-    if (error) logError('updateProfile', error);
+    if (error) {
+        // Handle missing column logic for update as well
+        if (error.code === '42703') {
+             console.warn("Missing column in profiles update. Retrying safely.");
+             if (dbUpdates.connected_astrologer_id !== undefined) delete dbUpdates.connected_astrologer_id;
+             await supabase.from('profiles').update(dbUpdates).eq('id', id); 
+             console.log("⬇️ [DB Success] updateProfile (Retry)");
+        } else {
+            logError('updateProfile', error);
+        }
+    } else {
+        console.log("⬇️ [DB Success] updateProfile");
+    }
 };
 
 export const fetchUserProfile = async (contact: string | string[]): Promise<{ profile: any | null, chatHistory: Message[] }> => {
+  console.log("⬆️ [DB Sending] fetchUserProfile:", contact);
   if (!supabase) return { profile: null, chatHistory: [] };
   try {
       let query = supabase.from('profiles').select('*');
@@ -570,6 +670,7 @@ export const fetchUserProfile = async (contact: string | string[]): Promise<{ pr
           connectedAstrologerId: data.connected_astrologer_id
       };
 
+      console.log("⬇️ [DB Success] fetchUserProfile found:", mappedProfile.contact);
       return {
         profile: mappedProfile,
         chatHistory: messages
@@ -585,6 +686,7 @@ export const generateUniqueUsername = async (fullName: string): Promise<string> 
 };
 
 export const saveUserProfile = async (user: UserState, password?: string, messages?: Message[]) => {
+  console.log("⬆️ [DB Sending] saveUserProfile:", user.contact);
   if (!supabase || !user.contact) return;
   try {
       let expiryVal = null;
@@ -622,13 +724,30 @@ export const saveUserProfile = async (user: UserState, password?: string, messag
       if (password) payload.password = await hashPassword(password);
       if (messages && messages.length > 0) payload.chat_history = compressAndEncrypt(messages);
 
+      const performUpsert = async (data: any, conflict: string) => {
+          const { error } = await supabase.from('profiles').upsert(data, { onConflict: conflict });
+          if (error) {
+              // Postgres error 42703: column does not exist
+              if (error.code === '42703') {
+                  console.warn("[DB-WARNING] 'connected_astrologer_id' column missing. Saving without it.");
+                  const safeData = { ...data };
+                  delete safeData.connected_astrologer_id;
+                  const { error: retryError } = await supabase.from('profiles').upsert(safeData, { onConflict: conflict });
+                  if (retryError) logError('saveUserProfile:Retry', retryError);
+                  else console.log("⬇️ [DB Success] saveUserProfile (Retry)");
+              } else {
+                  logError('saveUserProfile', error);
+              }
+          } else {
+              console.log("⬇️ [DB Success] saveUserProfile");
+          }
+      };
+
       if (user.id && user.id.length > 5) {
          const upsertPayload = { ...payload, id: user.id };
-         const { error } = await supabase.from('profiles').upsert(upsertPayload, { onConflict: 'id' });
-         if (error) logError('saveUserProfile:UpsertId', error);
+         await performUpsert(upsertPayload, 'id');
       } else {
-         const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'contact' });
-         if (error) logError('saveUserProfile:UpsertContact', error);
+         await performUpsert(payload, 'contact');
       }
   } catch (e) { logError('saveUserProfile:Exception', e); }
 };
