@@ -231,6 +231,21 @@ export default function App() {
           monthly: cachedData?.monthly || ''
       };
 
+      // Retry Helper
+      const generateWithRetry = async (prompt: string, schema: Schema, maxRetries = 3): Promise<any> => {
+          for (let i = 0; i < maxRetries; i++) {
+              try {
+                  const res = await generateJsonContent(prompt, 2000, schema);
+                  if (res) return res;
+                  console.warn(`Attempt ${i + 1} returned empty for insights.`);
+              } catch (e) {
+                  console.warn(`Attempt ${i + 1} failed for insights`, e);
+              }
+              if (i < maxRetries - 1) await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+          return null;
+      };
+
       try {
           // --- GENERATE DAILY (if stale) ---
           if (isDailyStale) {
@@ -262,8 +277,21 @@ export default function App() {
                   },
                   required: ['overview', 'simple_overview', 'dos', 'donts', 'luckyColor', 'luckyNumber']
               };
-              const dailyRes = await generateJsonContent(dailyPrompt, 1000, dailySchema);
-              if (dailyRes) newData.daily = dailyRes;
+              
+              const dailyRes = await generateWithRetry(dailyPrompt, dailySchema);
+              if (dailyRes) {
+                  newData.daily = dailyRes;
+              } else {
+                  // Robust fallback if AI fails after retries
+                  newData.daily = {
+                      overview: `The cosmic energy for ${sign} is recalibrating today. Focus on maintaining inner balance and avoiding impulsive decisions. The moon's current phase supports introspection.`,
+                      simple_overview: "Focus on inner peace today.",
+                      dos: ["Meditation", "Patience"],
+                      donts: ["Haste", "Conflict"],
+                      luckyColor: "White",
+                      luckyNumber: "7"
+                  };
+              }
           }
 
           // --- GENERATE WEEKLY (if stale) ---
@@ -281,8 +309,12 @@ export default function App() {
                       content: { type: Type.STRING }
                   }
               };
-              const weeklyRes = await generateJsonContent(weeklyPrompt, 800, weeklySchema);
-              if (weeklyRes?.content) newData.weekly = weeklyRes.content;
+              const weeklyRes = await generateWithRetry(weeklyPrompt, weeklySchema);
+              if (weeklyRes?.content) {
+                  newData.weekly = weeklyRes.content;
+              } else {
+                  newData.weekly = `Weekly insights for ${sign} are currently forming in the astral plane. Expect a week of mixed energies where patience will be your greatest virtue. Key planetary movements suggest focusing on career stability and health.`;
+              }
           }
 
           // --- GENERATE MONTHLY (if stale) ---
@@ -299,8 +331,12 @@ export default function App() {
                       content: { type: Type.STRING }
                   }
               };
-              const monthlyRes = await generateJsonContent(monthlyPrompt, 1000, monthlySchema);
-              if (monthlyRes?.content) newData.monthly = monthlyRes.content;
+              const monthlyRes = await generateWithRetry(monthlyPrompt, monthlySchema);
+              if (monthlyRes?.content) {
+                  newData.monthly = monthlyRes.content;
+              } else {
+                  newData.monthly = `This month brings a transformative energy for ${sign}. While detailed transits are being calculated, prepare for shifts in personal relationships and professional opportunities.`;
+              }
           }
 
           // Save combined data to DB cache
@@ -309,14 +345,14 @@ export default function App() {
 
       } catch (e) { 
           console.error(e); 
-          // Fallback if gen fails
+          // Last resort fallback
           if (!horoscopeData) {
              setHoroscopeData({ 
                  starSign: sign, 
                  meta: { dailyDate: todayIST },
                  daily: { overview: "Stars are shifting.", simple_overview: "Aligning energies.", dos: ["Meditate"], donts: ["Stress"], luckyColor: "White", luckyNumber: "7" }, 
-                 weekly: "Planetary shifts observed.", 
-                 monthly: "A month of transformation." 
+                 weekly: "Planetary shifts observed. Please check back later.", 
+                 monthly: "A month of transformation. Please check back later." 
              });
           }
       } finally { 

@@ -40,6 +40,9 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
   useEffect(() => {
     const initAgora = async () => {
       try {
+        // Hide Agora Logs
+        AgoraRTC.setLogLevel(4); 
+
         const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
         clientRef.current = client;
 
@@ -91,7 +94,7 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
         }
 
       } catch (err: any) {
-        console.error("Agora Init Error:", err);
+        // console.error("Agora Init Error:", err); // Keep essential error logs if needed, but suppressed by level 4 generally
         
         // --- SIMULATION FALLBACK MODE ---
         // If the error is specific to missing Token/Certificate mismatch, we fallback to a "Demo Mode"
