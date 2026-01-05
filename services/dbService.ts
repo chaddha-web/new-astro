@@ -65,7 +65,8 @@ export const saveCachedReading = async (key: string, response: string) => {
     console.log("⬆️ [DB Sending] saveCachedReading:", key);
     if (!supabase) return;
     try { 
-        await supabase.from('natal_cache').upsert({ id: key, response }, { onConflict: 'id' }); 
+        const { error } = await supabase.from('natal_cache').upsert({ id: key, response }, { onConflict: 'id' }); 
+        if (error) throw error;
         console.log("⬇️ [DB Success] saveCachedReading:", key);
     } 
     catch (e) { logError('saveCachedReading', e); }
@@ -98,7 +99,8 @@ export const logCommunication = async (type: CommunicationLog['type'], recipient
     if (supabase) {
         console.log("⬆️ [DB Sending] logCommunication:", type, recipient);
         try { 
-            await supabase.from('communications').insert([{ id: logId, type, recipient, direction, status, details, timestamp: new Date().toISOString() }]); 
+            const { error } = await supabase.from('communications').insert([{ id: logId, type, recipient, direction, status, details, timestamp: new Date().toISOString() }]); 
+            if (error) throw error;
             console.log("⬇️ [DB Success] logCommunication");
         } 
         catch (e) { logError('logCommunication', e); }
@@ -124,7 +126,7 @@ export const logTokenUsage = async (userId: string, feature: string, inputTokens
     if (!supabase || !userId) return;
     console.log("⬆️ [DB Sending] logTokenUsage:", userId, feature);
     try {
-        await supabase.from('usage_logs').insert([{
+        const { error } = await supabase.from('usage_logs').insert([{
             user_id: userId,
             feature: feature,
             input_tokens: inputTokens,
@@ -132,7 +134,14 @@ export const logTokenUsage = async (userId: string, feature: string, inputTokens
             total_tokens: inputTokens + outputTokens,
             timestamp: new Date().toISOString()
         }]);
-        console.log("⬇️ [DB Success] logTokenUsage");
+        
+        if (error) {
+            // Log full error details to console to debug 400 Bad Request
+            console.error("❌ [DB Error] logTokenUsage failed:", error);
+            logError('logTokenUsage', error);
+        } else {
+            console.log("⬇️ [DB Success] logTokenUsage");
+        }
     } catch (e) { logError('logTokenUsage', e); }
 };
 
@@ -426,9 +435,14 @@ export const saveAstrologer = async (astro: Partial<Astrologer>) => {
     console.log("⬆️ [DB Sending] saveAstrologer:", astro.name);
     if (!supabase) return;
     const payload = { name: astro.name, specialty: astro.specialty, rating: astro.rating, reviews: astro.reviews, price_per_min: astro.pricePerMin, image_url: astro.imageUrl, is_online: astro.isOnline };
-    if (astro.id && astro.id.length > 10) await supabase.from('astrologers').update(payload).eq('id', astro.id);
-    else await supabase.from('astrologers').insert([payload]);
-    console.log("⬇️ [DB Success] saveAstrologer");
+    let error;
+    if (astro.id && astro.id.length > 10) {
+        ({ error } = await supabase.from('astrologers').update(payload).eq('id', astro.id));
+    } else {
+        ({ error } = await supabase.from('astrologers').insert([payload]));
+    }
+    if (error) logError('saveAstrologer', error);
+    else console.log("⬇️ [DB Success] saveAstrologer");
 };
 
 export const deleteAstrologer = async (id: string) => { 
@@ -458,7 +472,7 @@ export const createProduct = async (product: Product): Promise<Product | null> =
   let data, error;
   if (product.id && product.id.length > 10 && !product.id.startsWith('p')) { ({ data, error } = await supabase.from('products').update(payload).eq('id', product.id).select().single()); } 
   else { ({ data, error } = await supabase.from('products').insert([payload]).select().single()); }
-  if (error) return null;
+  if (error) { logError('createProduct', error); return null; }
   console.log("⬇️ [DB Success] createProduct");
   return { ...product, id: data.id, name: data.name, imageUrl: data.image_url, category: data.category };
 };
