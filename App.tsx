@@ -68,9 +68,13 @@ declare global {
 
 const getZodiacSign = (dateString: string): string => {
     if (!dateString) return "Aries";
-    const date = new Date(dateString);
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
+    // Fix: Parse YYYY-MM-DD manually to avoid Timezone offsets
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return "Aries"; // Fallback
+    
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+
     if ((month === 1 && day >= 20) || (month === 2 && day <= 18)) return "Aquarius";
     if ((month === 2 && day >= 19) || (month === 3 && day <= 20)) return "Pisces";
     if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Aries";
@@ -823,15 +827,18 @@ export default function App() {
           return; 
       } 
       const amount = a.pricePerMin * 10;
-      initiatePayment(amount, 'Session', () => { 
-          // Update state first so connectedAstrologerId is available for transaction
+      initiatePayment(amount, 'Session', async () => { 
+          // 1. Update Local State
           const updatedUser = {...userState, connectedAstrologerId:a.id};
           setUserState(updatedUser); 
           setSessionExpiry(Date.now()+600000); 
           setRatingTarget(a); 
           setView(AppView.CHAT);
           
-          // Use updated user object to ensure ID is passed
+          // 2. CRITICAL: Persist Connection to DB immediately so Guru Dashboard updates
+          await saveUserProfile(updatedUser);
+
+          // 3. Log Transaction
           addTransaction(amount, 'Consultation', `Session with ${a.name}`, updatedUser);
           updateEarnings(a.id, 'chats', amount * 0.9); 
       }); 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Transaction, SubscriptionTier, Astrologer, CommunicationLog, Message, Sender } from '../../types';
 import { DEFAULT_SUBSCRIPTION_TIERS, AVAILABLE_FEATURES } from '../../constants';
-import { saveAstrologer, deleteAstrologer, updateProfile, createProduct, deleteProductFromDb, fetchUsageStats, fetchAdminPayoutRequests, updatePayoutStatus, fetchAllUsageLogs } from '../../services/dbService';
+import { saveAstrologer, deleteAstrologer, updateProfile, createProduct, deleteProductFromDb, fetchUsageStats, fetchAdminPayoutRequests, updatePayoutStatus, fetchAllUsageLogs, flushAllInsights } from '../../services/dbService';
 import { decryptAndDecompress } from '../../services/securityService';
 
 interface AdminDashboardProps {
@@ -28,7 +28,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onImpersonate,
     onRefresh
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'shop' | 'users' | 'gurus' | 'finance' | 'communications' | 'subscriptions' | 'usage'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'shop' | 'users' | 'gurus' | 'finance' | 'communications' | 'subscriptions' | 'usage' | 'settings'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [filterStatus, setFilterStatus] = useState('all');
@@ -169,6 +169,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       }
   };
 
+  const handleRenewInsights = async () => {
+      if (!window.confirm("This will delete ALL cached horoscopes and readings for all users. Users will get fresh AI insights on their next visit. Continue?")) return;
+      const success = await flushAllInsights();
+      if (success) {
+          alert("Success! All old insights have been cleared. Users will receive accurate generated readings on their next dashboard load.");
+      } else {
+          alert("Failed to flush cache. Check database logs.");
+      }
+  };
+
   const renderOverview = () => {
       const totalRevenue = transactions.reduce((sum, t) => sum + t.amount, 0);
       const member21Count = users.filter(u => u.tier === 'member21').length;
@@ -279,7 +289,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     { id: 'communications', icon: '📡', label: 'Logs' },
                     { id: 'usage', icon: '🔮', label: 'API Usage' },
                     { id: 'finance', icon: '💰', label: 'Financials' },
-                    { id: 'subscriptions', icon: '✨', label: 'Subscriptions' }
+                    { id: 'subscriptions', icon: '✨', label: 'Subscriptions' },
+                    { id: 'settings', icon: '⚙️', label: 'Settings' }
                 ].map(item => (
                     <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`text-left p-3 rounded-xl flex items-center justify-center md:justify-start gap-3 transition-all ${activeTab === item.id ? 'bg-gold-500 text-mystic-900 font-bold shadow-lg shadow-gold-500/20' : 'text-mystic-400 hover:bg-white/5 hover:text-white'}`}>
                         <span className="text-xl">{item.icon}</span><span className="hidden md:inline">{item.label}</span>
@@ -670,6 +681,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'settings' && (
+                    <div className="animate-in fade-in space-y-8">
+                        <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
+                            <span>⚙️</span> System Settings
+                        </h3>
+                        
+                        <div className="bg-mystic-900/50 border border-white/10 rounded-xl p-6 shadow-xl">
+                            <h4 className="text-lg font-bold text-gold-400 mb-2">Renew Insights</h4>
+                            <p className="text-mystic-300 text-sm mb-4">
+                                Flush all cached horoscopes and daily readings. This forces the system to re-generate fresh, accurate insights for all users upon their next visit. 
+                                Use this if users report outdated or incorrect predictions.
+                            </p>
+                            <button 
+                                onClick={handleRenewInsights}
+                                className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-colors flex items-center gap-2 text-sm"
+                            >
+                                <span>🗑️</span> Clear All Cached Insights
+                            </button>
                         </div>
                     </div>
                 )}

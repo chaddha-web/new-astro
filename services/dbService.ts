@@ -62,6 +62,23 @@ export const saveCachedReading = async (key: string, response: string) => {
     catch (e) { logError('saveCachedReading', e); }
 };
 
+export const flushAllInsights = async (): Promise<boolean> => {
+    if (!supabase) return false;
+    try {
+        // Delete all rows in natal_cache. 
+        // Note: Supabase requires a WHERE clause for delete. neq id 0 covers everything usually.
+        const { error } = await supabase.from('natal_cache').delete().neq('id', 'dummy_val_that_does_not_exist');
+        if (error) {
+            logError('flushAllInsights', error);
+            return false;
+        }
+        return true;
+    } catch (e) {
+        logError('flushAllInsights:Exception', e);
+        return false;
+    }
+};
+
 // --- LOGGING ---
 export const logCommunication = async (type: CommunicationLog['type'], recipient: string, direction: CommunicationLog['direction'], status: CommunicationLog['status'], details?: string) => {
     const logId = generateReferenceId('Log');
@@ -373,7 +390,8 @@ export const fetchProducts = async (): Promise<Product[]> => {
   if (!supabase) return MOCK_PRODUCTS;
   try {
       const { data } = await supabase.from('products').select('*');
-      if (!data) return MOCK_PRODUCTS;
+      // Fix: Check if data is empty array and fallback to mock if so
+      if (!data || data.length === 0) return MOCK_PRODUCTS;
       return data.map((p: any) => ({ id: p.id, name: p.name, category: p.category, price: p.price, description: p.description, benefits: p.benefits, imageUrl: p.image_url }));
   } catch (e) { return MOCK_PRODUCTS; }
 };
