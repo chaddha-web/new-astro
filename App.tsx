@@ -5,7 +5,7 @@ import { INITIAL_DAILY_LIMIT, PREMIUM_DAILY_LIMIT, generateSystemInstruction, SU
 import { initializeChat, sendMessageToGemini, generateJsonContent } from './services/geminiService';
 import { fetchProducts, fetchTransactions, saveTransaction, fetchUserProfile, saveUserProfile, seedDatabase, fetchAstrologers, subscribeToTable, logCommunication, generateUniqueUsername, generateReferenceId, fetchCachedReading, saveCachedReading, fetchProfiles, fetchCommunicationLogs } from './services/dbService';
 import { verifyPassword, generateJWT, verifyJWT } from './services/securityService';
-import { supabase } from './services/supabaseClient'; // Imported for safety check
+import { supabase } from './services/supabaseClient'; 
 import StarBackground from './components/Layout/StarBackground';
 import MessageBubble from './components/Chat/MessageBubble';
 import ThinkingBubble from './components/Chat/ThinkingBubble';
@@ -26,6 +26,37 @@ import FullScreenLoader from './components/Layout/FullScreenLoader';
 import { Type, Schema } from '@google/genai';
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
+
+// --- DATE HELPERS FOR IST ---
+const getISTDate = () => {
+    // Returns YYYY-MM-DD in Asia/Kolkata
+    return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }); 
+};
+
+const getISTMonth = () => {
+    // Returns YYYY-MM
+    return getISTDate().substring(0, 7);
+};
+
+const getISTWeekStart = () => {
+    // Returns YYYY-MM-DD of the most recent Sunday in IST
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    const day = now.getDay(); // 0 is Sunday
+    const diff = now.getDate() - day; // adjust when day is sunday
+    const sunday = new Date(now.setDate(diff));
+    return sunday.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+};
+
+const getISTWeekRange = () => {
+    const start = getISTWeekStart();
+    const startDate = new Date(start);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6); // Saturday
+    
+    // Format: "Oct 22 - Oct 28"
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
+};
 
 declare global {
   interface Window {
@@ -121,7 +152,6 @@ export default function App() {
                 fetchCommunicationLogs()
             ]);
             
-            // Set state regardless of empty or not to ensure UI is in sync with DB
             if (dbProducts) setProducts(dbProducts);
             if (dbTransactions) setTransactions(dbTransactions);
             if (dbAstrologers) setAstrologers(dbAstrologers);
@@ -149,47 +179,145 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-      if (view === AppView.HOROSCOPE && !horoscopeData && userState.hasOnboarded) {
+      if (view === AppView.HOROSCOPE && userState.hasOnboarded) {
           generateFullHoroscope();
       }
   }, [view, userState.hasOnboarded]);
 
   const generateFullHoroscope = async () => {
+      // 1. Check if we need to generate anything based on cached data timestamps
+      const todayIST = getISTDate();
+      const thisWeekIST = getISTWeekStart(); // Sunday Date
+      const weekRange = getISTWeekRange(); // "Oct 27 - Nov 02"
+      const thisMonthIST = getISTMonth();
+      
+      const cacheKey = `horoscope_v2_${userState.id || userState.contact}`;
+      
+      // Fetch existing cache
+      let cachedData: HoroscopeData | null = null;
+      try {
+          const raw = await fetchCachedReading(cacheKey);
+          if (raw) cachedData = JSON.parse(raw);
+      } catch (e) { console.error("Cache parse error", e); }
+
+      // Determine what is stale
+      const isDailyStale = cachedData?.meta?.dailyDate !== todayIST;
+      const isWeeklyStale = cachedData?.meta?.weekDate !== thisWeekIST;
+      const isMonthlyStale = cachedData?.meta?.monthDate !== thisMonthIST;
+
+      // If nothing is stale, just set state and return
+      if (cachedData && !isDailyStale && !isWeeklyStale && !isMonthlyStale) {
+          setHoroscopeData(cachedData);
+          return;
+      }
+
       setIsGeneratingHoroscope(true);
       const sign = getZodiacSign(userState.birthDate || '');
       
-      const prompt = `
-        Vedic Horoscope for ${userState.name} (${sign}). 
-        Provide structure with Daily, Weekly, and Monthly insights.
-        Constraints: ${userState.isPremium || userState.tier === 'member21' ? 'Detailed content.' : 'BE VERY CONCISE (GIST ONLY).'} Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
-      `;
-
-      const schema: Schema = {
-        type: Type.OBJECT,
-        properties: {
-          daily: {
-            type: Type.OBJECT,
-            properties: {
-              overview: { type: Type.STRING },
-              dos: { type: Type.ARRAY, items: { type: Type.STRING } },
-              donts: { type: Type.ARRAY, items: { type: Type.STRING } },
-              luckyColor: { type: Type.STRING },
-              luckyNumber: { type: Type.STRING }
-            },
-            required: ['overview', 'dos', 'donts', 'luckyColor', 'luckyNumber']
+      // We will build a new object merging old valid data with new data
+      const newData: HoroscopeData = {
+          starSign: sign,
+          meta: {
+              dailyDate: todayIST,
+              weekDate: thisWeekIST,
+              monthDate: thisMonthIST
           },
-          weekly: { type: Type.STRING },
-          monthly: { type: Type.STRING },
-          starSign: { type: Type.STRING }
-        },
-        required: ['daily', 'weekly', 'monthly', 'starSign']
+          daily: cachedData?.daily || { overview: '', simple_overview: '', dos: [], donts: [], luckyColor: '', luckyNumber: '' },
+          weekly: cachedData?.weekly || '',
+          monthly: cachedData?.monthly || ''
       };
 
       try {
-          const data = await generateJsonContent(prompt, (userState.isPremium || userState.tier === 'member21') ? 4000 : 2000, schema);
-          if (data && data.daily) { setHoroscopeData(data); } 
-          else { setHoroscopeData({ starSign: sign, daily: { overview: "Stars are shifting.", dos: ["Meditate"], donts: ["Stress"], luckyColor: "White", luckyNumber: "7" }, weekly: "Good week ahead.", monthly: "Plan carefully." }); }
-      } catch (e) { console.error(e); } finally { setIsGeneratingHoroscope(false); }
+          // --- GENERATE DAILY (if stale) ---
+          if (isDailyStale) {
+              const dailyPrompt = `
+                Generate Daily Horoscope for ${userState.name} (${sign}). 
+                Date: ${todayIST}.
+                Inputs: Born ${userState.birthDate} at ${userState.birthPlace}.
+                Requirement: UNIQUE Do's and Don'ts specific to this user's chart today. NOT generic sun sign advice.
+                Output JSON:
+                {
+                  "overview": "Detailed daily prediction covering career, health, love (max 60 words)",
+                  "simple_overview": "One simple sentence summary for quick reading",
+                  "dos": ["Unique Do 1 based on transit", "Unique Do 2"],
+                  "donts": ["Unique Don't 1", "Unique Don't 2"],
+                  "luckyColor": "Color",
+                  "luckyNumber": "Number"
+                }
+                Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
+              `;
+              const dailySchema: Schema = {
+                  type: Type.OBJECT,
+                  properties: {
+                      overview: { type: Type.STRING },
+                      simple_overview: { type: Type.STRING },
+                      dos: { type: Type.ARRAY, items: { type: Type.STRING } },
+                      donts: { type: Type.ARRAY, items: { type: Type.STRING } },
+                      luckyColor: { type: Type.STRING },
+                      luckyNumber: { type: Type.STRING }
+                  },
+                  required: ['overview', 'simple_overview', 'dos', 'donts', 'luckyColor', 'luckyNumber']
+              };
+              const dailyRes = await generateJsonContent(dailyPrompt, 1000, dailySchema);
+              if (dailyRes) newData.daily = dailyRes;
+          }
+
+          // --- GENERATE WEEKLY (if stale) ---
+          if (isWeeklyStale) {
+              const weeklyPrompt = `
+                Generate Weekly Horoscope for ${userState.name} (${sign}).
+                Week Range: ${weekRange}.
+                Structure: "Detailed overview of the weekly activity covering major planetary transits and their impact on the user from ${weekRange}."
+                Mention the specific dates in the text.
+                Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
+              `;
+              const weeklySchema: Schema = {
+                  type: Type.OBJECT,
+                  properties: {
+                      content: { type: Type.STRING }
+                  }
+              };
+              const weeklyRes = await generateJsonContent(weeklyPrompt, 800, weeklySchema);
+              if (weeklyRes?.content) newData.weekly = weeklyRes.content;
+          }
+
+          // --- GENERATE MONTHLY (if stale) ---
+          if (isMonthlyStale) {
+              const monthlyPrompt = `
+                Generate Monthly Horoscope for ${userState.name} (${sign}).
+                Month: ${thisMonthIST}.
+                Structure: "Provide a teaser overview of the month (max 30 words). Then strictly tell them to 'Download the full Ephemeris Yearbook for detailed dates and predictions'."
+                Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
+              `;
+              const monthlySchema: Schema = {
+                  type: Type.OBJECT,
+                  properties: {
+                      content: { type: Type.STRING }
+                  }
+              };
+              const monthlyRes = await generateJsonContent(monthlyPrompt, 1000, monthlySchema);
+              if (monthlyRes?.content) newData.monthly = monthlyRes.content;
+          }
+
+          // Save combined data to DB cache
+          await saveCachedReading(cacheKey, JSON.stringify(newData));
+          setHoroscopeData(newData);
+
+      } catch (e) { 
+          console.error(e); 
+          // Fallback if gen fails
+          if (!horoscopeData) {
+             setHoroscopeData({ 
+                 starSign: sign, 
+                 meta: { dailyDate: todayIST },
+                 daily: { overview: "Stars are shifting.", simple_overview: "Aligning energies.", dos: ["Meditate"], donts: ["Stress"], luckyColor: "White", luckyNumber: "7" }, 
+                 weekly: "Planetary shifts observed.", 
+                 monthly: "A month of transformation." 
+             });
+          }
+      } finally { 
+          setIsGeneratingHoroscope(false); 
+      }
   };
 
   const handleSendYearlyReport = () => {
@@ -308,6 +436,7 @@ export default function App() {
       try {
           const { profile, chatHistory } = await fetchUserProfile([contact.trim()]);
           if (profile) {
+              // Generate and Store JWT Token on Successful Login
               const token = generateJWT(profile.contact);
               localStorage.setItem('astro_token', token);
               
@@ -356,11 +485,18 @@ export default function App() {
         if (userParam) {
             handleSeekerLogin(userParam);
         } else {
+            // VERIFY TOKEN ON APP INIT
             const token = localStorage.getItem('astro_token');
             if (token) {
+                // Determine user identity solely from token
                 const contact = verifyJWT(token);
-                if (contact) { if (contact === 'ADMIN') handleAdminEnter(); else handleSeekerLogin(contact); }
-                else { localStorage.removeItem('astro_token'); }
+                if (contact) { 
+                    if (contact === 'ADMIN') handleAdminEnter(); 
+                    else handleSeekerLogin(contact); 
+                } else { 
+                    // Token invalid or expired
+                    localStorage.removeItem('astro_token'); 
+                }
             }
         }
     }
@@ -475,6 +611,7 @@ export default function App() {
           await saveUserProfile(baseUser, data.password);
           setUserState(baseUser);
           
+          // Generate Token on Onboarding Completion
           const token = generateJWT(baseUser.contact || 'User');
           localStorage.setItem('astro_token', token);
       } catch (e) {
@@ -617,15 +754,18 @@ export default function App() {
   };
 
   const initiatePayment = (amount: number, desc: string, success: () => void, contact?: string) => { setPendingPayment({ amount, description: desc, onSuccess: success, contact }); setShowPaymentConfirmation(true); };
+  // Updated to update local earnings state but real persistence happens via DB queries now
   const updateEarnings = (id: string, type: keyof Earnings, amt: number) => setAstrologerEarnings(p => ({...p, [id]: {...(p[id]||{chats:0,products:0,tips:0,withdrawn:0}), [type]: (p[id]?.[type]||0)+amt}}));
   
+  // UPDATED: Now supports relatedEntityId for proper attribution
   const addTransaction = (amt: number, type: 'Product' | 'Subscription' | 'Dakshina' | 'Consultation', det: string, userOverride?: UserState) => { 
       const currentUser = userOverride || userState;
       const tx:Transaction={ 
           id: generateReferenceId(type, det), 
           userId: currentUser.id || currentUser.contact || 'u', 
           userName: currentUser.name || 'Guest', 
-          amount:amt, type, status:'Success', date:new Date().toISOString().split('T')[0], details:det 
+          amount:amt, type, status:'Success', date:new Date().toISOString().split('T')[0], details:det,
+          relatedEntityId: currentUser.connectedAstrologerId // Attributed to connected astro if exists
       }; 
       setTransactions(p=>[tx,...p]); saveTransaction(tx); 
   };
@@ -666,8 +806,36 @@ export default function App() {
   const initiateProductPurchase = (p: Product) => { setSelectedProductForPurchase(p); setShippingDetails({ address:'', city:'', pincode:'', phone:'' }); setShowAddressModal(true); };
   const confirmPurchaseWithAddress = () => { if(!selectedProductForPurchase) return; initiatePayment(selectedProductForPurchase.price, selectedProductForPurchase.name, () => { addTransaction(selectedProductForPurchase!.price, 'Product', selectedProductForPurchase!.name); setMessages(p=>[...p, {id:generateId(), text:`Purchased ${selectedProductForPurchase!.name}`, sender:Sender.SYSTEM, timestamp:new Date()}]); setShowAddressModal(false); }); };
   const handleUnlockMessage = (id: string) => setMessages(p => p.map(m => m.id===id ? {...m, isLocked:false} : m));
-  const handleGuruDakshina = (amt: number) => initiatePayment(amt, 'Dakshina', () => { if(userState.connectedAstrologerId) updateEarnings(userState.connectedAstrologerId, 'tips', amt*0.8); addTransaction(amt, 'Dakshina', 'Tip'); setShowTipModal(false); });
-  const connectToAstrologer = (a: Astrologer) => { if(!userState.isPremium && !userState.isAdminImpersonating) { setPremiumModalReason("Premium Required"); setShowPremiumModal(true); return; } initiatePayment(a.pricePerMin*10, 'Session', () => { setUserState(p=>({...p, connectedAstrologerId:a.id})); setSessionExpiry(Date.now()+600000); setRatingTarget(a); setView(AppView.CHAT); }); };
+  
+  // UPDATED: Ensure updateEarnings is called but also rely on transaction attribution
+  const handleGuruDakshina = (amt: number) => initiatePayment(amt, 'Dakshina', () => { 
+      // Update local state for immediate feedback
+      if(userState.connectedAstrologerId) updateEarnings(userState.connectedAstrologerId, 'tips', amt*0.8); 
+      // Transaction will carry connectedAstrologerId via addTransaction
+      addTransaction(amt, 'Dakshina', 'Tip'); 
+      setShowTipModal(false); 
+  });
+
+  const connectToAstrologer = (a: Astrologer) => { 
+      if(!userState.isPremium && !userState.isAdminImpersonating) { 
+          setPremiumModalReason("Premium Required"); 
+          setShowPremiumModal(true); 
+          return; 
+      } 
+      const amount = a.pricePerMin * 10;
+      initiatePayment(amount, 'Session', () => { 
+          // Update state first so connectedAstrologerId is available for transaction
+          const updatedUser = {...userState, connectedAstrologerId:a.id};
+          setUserState(updatedUser); 
+          setSessionExpiry(Date.now()+600000); 
+          setRatingTarget(a); 
+          setView(AppView.CHAT);
+          
+          // Use updated user object to ensure ID is passed
+          addTransaction(amount, 'Consultation', `Session with ${a.name}`, updatedUser);
+          updateEarnings(a.id, 'chats', amount * 0.9); 
+      }); 
+  };
   const disconnectAstrologer = () => { setUserState(p=>({...p, connectedAstrologerId:undefined})); setSessionExpiry(null); setCallState(p=>({...p, isActive:false})); setShowRatingModal(true); };
   const handleAcceptCall = (mid: string, t: 'voice'|'video') => { if(userState.connectedAstrologerId) setCallState({isActive:true, type:t, partnerName:'Guru', partnerImage:'', channelName:userState.connectedAstrologerId, messageId:mid}); };
   const handleCallEnd = (d: number) => { setCallState(p=>({...p, isActive:false})); if(callState.messageId) setMessages(p=>p.map(m=>m.id===callState.messageId ? {...m, metadata:{...m.metadata, callStatus:'ended', durationText:`${d}s`}} : m)); };
@@ -747,7 +915,7 @@ export default function App() {
         ) : (
             <>
                 {view === AppView.ASTRO_DASHBOARD ? (
-                    <AstrologerDashboard activeUser={userState} messages={messages} onAction={handleAstrologerAction} earnings={astrologerEarnings} astrologers={astrologers} products={products} />
+                    <AstrologerDashboard activeUser={userState} messages={messages} onAction={handleAstrologerAction} earnings={astrologerEarnings} astrologers={astrologers} products={products} users={users} />
                 ) : view === AppView.HOROSCOPE ? (
                     <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} />
                 ) : view === AppView.CHAT ? (

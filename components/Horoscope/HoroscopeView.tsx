@@ -134,118 +134,34 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
           yPos += 20;
 
           // Content Generation via AI
-          let reportContent = [];
-          const signInfo = horoscopeData?.starSign ? `Star Sign: ${horoscopeData.starSign}` : (user.birthDate ? `Born: ${user.birthDate}` : '');
+          // Reuse existing data logic from props since we now store detailed weekly/monthly in the main state
+          let contentText = type === 'weekly' ? horoscopeData?.weekly : horoscopeData?.monthly;
           
-          if (type === 'weekly') {
-              const prompt = `Generate a 7-day horoscope for ${user.name} ${signInfo}.
-              Period: This week (Sunday to Saturday).
-              Output JSON object with a field "items" which is an array of objects.
-              Each object must have "title" (Day Name) and "forecast" (Prediction). 
-              Tone: Mystical yet practical. Max 40 words per day.`;
-              
-              const schema: Schema = {
-                  type: Type.OBJECT,
-                  properties: {
-                      items: {
-                          type: Type.ARRAY,
-                          items: {
-                              type: Type.OBJECT,
-                              properties: {
-                                  title: { type: Type.STRING },
-                                  forecast: { type: Type.STRING }
-                              },
-                              required: ['title', 'forecast']
-                          }
-                      }
-                  }
-              };
-              
-              const data = await generateJsonContent(prompt, 2500, schema);
-              reportContent = data?.items || [];
-
-          } else {
-              const year = new Date().getFullYear();
-              const prompt = `Generate a 12-month horoscope for ${user.name} ${signInfo} for the year ${year}. 
-              Output JSON object with a field "items" which is an array of objects.
-              Each object must have "title" (Month Name) and "forecast" (Prediction).
-              Tone: Mystical yet practical. Max 40 words per month.`;
-              
-              const schema: Schema = {
-                  type: Type.OBJECT,
-                  properties: {
-                      items: {
-                          type: Type.ARRAY,
-                          items: {
-                              type: Type.OBJECT,
-                              properties: {
-                                  title: { type: Type.STRING },
-                                  forecast: { type: Type.STRING }
-                              },
-                              required: ['title', 'forecast']
-                          }
-                      }
-                  }
-              };
-              
-              const data = await generateJsonContent(prompt, 4000, schema);
-              reportContent = data?.items || [];
-          }
+          // Split into paragraphs for PDF
+          const paragraphs = contentText ? contentText.split('\n').filter(p => p.trim().length > 0) : ["Analysis not available."];
 
           // Render Content Loop
           doc.setFont("times", "normal");
           let pageCount = 1;
 
-          if (reportContent && reportContent.length > 0) {
-              reportContent.forEach((item: any, index: number) => {
-                  const title = item.title || item.day || item.month;
-                  const text = item.forecast;
+          paragraphs.forEach((para: string, index: number) => {
+              // Dynamic Check for Page Break
+              if (yPos > pageHeight - 40) {
+                  doc.addPage();
+                  pageCount++;
+                  addPageBranding(pageCount);
+                  yPos = 30; // Reset top margin
+              }
 
-                  // Dynamic Check for Page Break
-                  // Bottom margin is ~20px + footer space
-                  if (yPos > pageHeight - 40) {
-                      doc.addPage();
-                      pageCount++;
-                      addPageBranding(pageCount);
-                      yPos = 30; // Reset top margin
-                  }
-
-                  // Item Title
-                  doc.setFont("times", "bold");
-                  doc.setFontSize(12);
-                  doc.setTextColor(...darkColor);
-                  
-                  // Draw a small bullet/icon
-                  doc.setDrawColor(...goldColor);
-                  doc.setFillColor(...goldColor);
-                  doc.circle(margin - 4, yPos - 1, 1.5, 'F');
-                  
-                  doc.text(String(title).toUpperCase(), margin, yPos);
-                  yPos += 6;
-
-                  // Item Body
-                  doc.setFont("times", "normal");
-                  doc.setFontSize(11);
-                  doc.setTextColor(20); // Almost black
-                  
-                  const splitText = doc.splitTextToSize(String(text), pageWidth - (margin * 2));
-                  doc.text(splitText, margin, yPos);
-                  
-                  // Calculate height of text block + spacing
-                  const blockHeight = (splitText.length * 5); 
-                  yPos += blockHeight + 8; // Spacing between items
-                  
-                  // Divider line (light)
-                  if (index < reportContent.length - 1) {
-                      doc.setDrawColor(220, 220, 220);
-                      doc.line(margin, yPos - 4, pageWidth - margin, yPos - 4);
-                  }
-              });
-          } else {
-              doc.setFont("helvetica", "italic");
-              doc.setTextColor(150);
-              doc.text("Cosmic interference prevented report generation. Please try again.", margin, yPos);
-          }
+              doc.setFontSize(11);
+              doc.setTextColor(20); 
+              
+              const splitText = doc.splitTextToSize(para, pageWidth - (margin * 2));
+              doc.text(splitText, margin, yPos);
+              
+              const blockHeight = (splitText.length * 5); 
+              yPos += blockHeight + 6; 
+          });
 
           // Save File
           const fileName = `Astro21_${user.name.replace(/\s+/g, '_')}_${type === 'weekly' ? 'Weekly' : 'Yearbook'}.pdf`;
@@ -267,14 +183,18 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
           <div className="bg-gradient-to-r from-mystic-800 to-mystic-900 border border-gold-500/30 rounded-2xl p-6 relative overflow-hidden shadow-lg">
               <div className="absolute top-0 right-0 p-4 opacity-5 text-9xl">✨</div>
               <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-serif text-white">Daily Cosmic Rhythm</h3>
+                <div>
+                    <h3 className="text-xl font-serif text-white">Daily Cosmic Rhythm</h3>
+                    <p className="text-xs text-mystic-400 mt-1 font-mono uppercase">
+                        {horoscopeData?.meta?.dailyDate || new Date().toLocaleDateString()}
+                    </p>
+                </div>
                 {horoscopeData?.starSign && (
                     <span className="text-xs bg-gold-500/20 text-gold-400 px-3 py-1 rounded-full border border-gold-500/30 font-bold uppercase tracking-widest">
                         {horoscopeData.starSign}
                     </span>
                 )}
               </div>
-              <p className="text-sm text-mystic-300 mb-4">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               
               {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-10 gap-3">
@@ -283,7 +203,15 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                   </div>
               ) : horoscopeData?.daily ? (
                   <>
-                    <p className="text-white leading-relaxed mb-6 font-medium text-lg">{horoscopeData.daily.overview}</p>
+                    <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/5">
+                        <p className="text-[10px] text-gold-400 uppercase tracking-widest font-bold mb-1">Simple Overview</p>
+                        <p className="text-white font-medium text-sm leading-relaxed">{horoscopeData.daily.simple_overview}</p>
+                    </div>
+
+                    <div className="mb-6">
+                        <p className="text-[10px] text-mystic-400 uppercase tracking-widest font-bold mb-2">Detailed Analysis</p>
+                        <p className="text-mystic-200 text-sm leading-relaxed text-justify">{horoscopeData.daily.overview}</p>
+                    </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4">
@@ -291,7 +219,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                             <ul className="space-y-2">
                                 {Array.isArray(horoscopeData.daily.dos) && horoscopeData.daily.dos.map((item, i) => (
                                     <li key={i} className="text-sm text-mystic-200 flex items-start gap-2">
-                                        <span className="text-green-500 mt-1">•</span> {item}
+                                        <span className="text-green-500 mt-1 text-[10px]">▶</span> {item}
                                     </li>
                                 ))}
                             </ul>
@@ -301,7 +229,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                             <ul className="space-y-2">
                                 {Array.isArray(horoscopeData.daily.donts) && horoscopeData.daily.donts.map((item, i) => (
                                     <li key={i} className="text-sm text-mystic-200 flex items-start gap-2">
-                                        <span className="text-red-500 mt-1">•</span> {item}
+                                        <span className="text-red-500 mt-1 text-[10px]">■</span> {item}
                                     </li>
                                 ))}
                             </ul>
@@ -330,16 +258,23 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
       const content = type === 'weekly' ? horoscopeData?.weekly : horoscopeData?.monthly;
       const hasAccess = user.isPremium || user.tier === 'member21';
       const year = new Date().getFullYear();
+      
+      const headerDate = type === 'weekly' 
+        ? `Week of ${horoscopeData?.meta?.weekDate || 'Current Cycle'}` 
+        : `${horoscopeData?.meta?.monthDate || 'Current Month'}`;
 
       return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="bg-mystic-800/60 border border-white/10 rounded-2xl p-8 shadow-xl relative overflow-hidden min-h-[400px]">
                 <div className="absolute top-0 right-0 p-4 opacity-5 text-9xl">{type === 'weekly' ? '📅' : '🌑'}</div>
                 <div className="relative z-10">
-                    <h3 className="text-2xl font-serif text-gold-400 mb-6 flex items-center gap-3">
+                    <h3 className="text-2xl font-serif text-gold-400 mb-2 flex items-center gap-3">
                         <span>{type === 'weekly' ? '🔭' : '🔮'}</span> 
                         {type === 'weekly' ? 'Weekly Transit Analysis' : 'Monthly Stellar Alignment'}
                     </h3>
+                    <p className="text-sm text-mystic-400 font-mono uppercase mb-6 border-b border-white/10 pb-4 inline-block">
+                        {headerDate}
+                    </p>
                     
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -349,12 +284,21 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                     ) : content ? (
                         <div className="prose prose-invert max-w-none">
                             <p className="text-mystic-100 text-lg leading-relaxed whitespace-pre-wrap">{content}</p>
+                            
+                            {type === 'monthly' && (
+                                <div className="my-8 bg-indigo-900/40 p-6 rounded-xl border border-indigo-500/30 text-center animate-pulse-slow">
+                                    <p className="text-indigo-200 font-serif text-lg mb-2">Detailed Monthly Ephemeris</p>
+                                    <p className="text-sm text-mystic-400 mb-4">The full planetary alignment requires deep analysis. Download the complete yearbook below.</p>
+                                    <div className="text-3xl mb-2">📚</div>
+                                </div>
+                            )}
+
                             <div className="mt-10 pt-6 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
                                 <p className="text-xs text-mystic-500 italic">Insights generated for your natal chart alignment.</p>
                                 <button 
                                     onClick={() => handleDownloadReport(type)}
                                     disabled={isGeneratingPdf}
-                                    className={`text-xs font-bold px-4 py-2 rounded-full border transition-all flex items-center gap-2 ${hasAccess ? 'bg-white/5 hover:bg-white/10 text-gold-400 border-gold-500/20' : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'}`}
+                                    className={`text-xs font-bold px-6 py-3 rounded-full border transition-all flex items-center gap-2 shadow-lg ${hasAccess ? 'bg-gold-500 text-black hover:bg-gold-400 border-gold-500 shadow-gold-500/20' : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'}`}
                                 >
                                     {!hasAccess && <span>🔒</span>}
                                     {isGeneratingPdf 

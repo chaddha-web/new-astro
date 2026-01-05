@@ -13,7 +13,8 @@ export default defineConfig(({ mode }) => {
         API_KEY: env.API_KEY,
         SUPABASE_URL: env.SUPABASE_URL,
         SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY,
-        RAZORPAY_KEY_ID: env.RAZORPAY_KEY_ID
+        RAZORPAY_KEY_ID: env.RAZORPAY_KEY_ID,
+        JWT_SECRET: env.JWT_SECRET
       }
     },
     build: {

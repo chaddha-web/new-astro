@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, Transaction, SubscriptionTier, Astrologer, CommunicationLog, Message, Sender } from '../../types';
 import { DEFAULT_SUBSCRIPTION_TIERS, AVAILABLE_FEATURES } from '../../constants';
-import { saveAstrologer, deleteAstrologer, updateProfile, createProduct, deleteProductFromDb, fetchUsageStats } from '../../services/dbService';
+import { saveAstrologer, deleteAstrologer, updateProfile, createProduct, deleteProductFromDb, fetchUsageStats, fetchAdminPayoutRequests, updatePayoutStatus, fetchAllUsageLogs } from '../../services/dbService';
 import { decryptAndDecompress } from '../../services/securityService';
 
 interface AdminDashboardProps {
@@ -28,15 +28,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     onImpersonate,
     onRefresh
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'shop' | 'users' | 'gurus' | 'finance' | 'communications' | 'subscriptions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'shop' | 'users' | 'gurus' | 'finance' | 'communications' | 'subscriptions' | 'usage'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   
   const [filterStatus, setFilterStatus] = useState('all');
   const [tiers, setTiers] = useState<SubscriptionTier[]>(DEFAULT_SUBSCRIPTION_TIERS);
   
-  // Real-time API Usage Stats from DB
+  // Real-time API Usage Stats & Logs from DB
   const [usageStats, setUsageStats] = useState({ totalRequests: 0, estimatedTokens: 0 });
+  const [usageLogs, setUsageLogs] = useState<any[]>([]);
   
+  // Payout Management
+  const [payouts, setPayouts] = useState<any[]>([]);
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
 
@@ -54,8 +58,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [isChatReviewOpen, setIsChatReviewOpen] = useState(false);
 
   useEffect(() => {
-      // Always fetch overview stats on load
-      fetchUsageStats().then(setUsageStats);
+      // Fetch overview stats and detailed lists when tab changes
+      if (activeTab === 'overview' || activeTab === 'usage') {
+          fetchUsageStats().then(setUsageStats);
+          fetchAllUsageLogs().then(setUsageLogs);
+      }
+      if (activeTab === 'finance') {
+          fetchAdminPayoutRequests().then(setPayouts);
+      }
   }, [activeTab]);
 
   const handleEditProduct = (product: Product) => { setEditingProduct(product); setIsProductModalOpen(true); };
@@ -102,8 +112,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       } else {
           // Free
           updates.isPremium = false;
-          // Don't clear expiry, just let it expire or set to null?
-          // Setting to null removes member status effectively.
           updates.subscriptionExpiry = null;
       }
 
@@ -130,13 +138,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const toggleFeature = (featureId: string) => { if (!editingTier) return; const hasFeature = editingTier.featureFlags.includes(featureId); let newFlags = hasFeature ? editingTier.featureFlags.filter(f => f !== featureId) : [...editingTier.featureFlags, featureId]; setEditingTier({ ...editingTier, featureFlags: newFlags }); };
   const saveTierUpdates = () => { if (!editingTier) return; setTiers(prev => prev.map(t => t.id === editingTier.id ? editingTier : t)); setIsTierModalOpen(false); };
 
-  // Handle Tier Change in Modal to set defaults
   const handleUserTierChange = (newTier: string) => {
       let newData = { ...editingUser, tier: newTier };
       
       if (newTier === 'member21') {
           newData.isPremium = false;
-          newData.dailyQuestionsLeft = 0; // Member 21 starts with 0 (Top-up model)
+          newData.dailyQuestionsLeft = 0; 
           const d = new Date();
           d.setFullYear(d.getFullYear() + 3);
           newData.subscriptionExpiry = d.toISOString();
@@ -152,6 +159,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           newData.subscriptionExpiry = null;
       }
       setEditingUser(newData);
+  };
+
+  const handlePayoutAction = async (id: string, action: 'Completed' | 'Rejected') => {
+      if(!window.confirm(`Mark payout as ${action}?`)) return;
+      const success = await updatePayoutStatus(id, action);
+      if (success) {
+          fetchAdminPayoutRequests().then(setPayouts);
+      }
   };
 
   const renderOverview = () => {
@@ -206,7 +221,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           <h3 className="text-indigo-400 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
                               <span>🔮</span> Cosmic Engine Monitor
                           </h3>
-                          <p className="text-xs text-mystic-400">Real-time usage tracking from Supabase</p>
+                          <p className="text-xs text-mystic-400">Real-time usage tracking from Supabase (usage_logs)</p>
                       </div>
                       <div className="flex gap-4">
                          <div className="bg-white/5 p-4 rounded-xl border border-white/5 text-center min-w-[120px]">
@@ -240,102 +255,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       );
   };
 
-  const renderSeekers = () => {
-      const filtered = users.filter(u => {
-          const matchName = u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.contact?.includes(searchTerm);
-          // Standardized to CamelCase "isPremium" from dbService
-          let matchStatus = true;
-          if (filterStatus === 'premium') matchStatus = u.isPremium;
-          else if (filterStatus === 'member21') matchStatus = u.tier === 'member21';
-          else if (filterStatus === 'free') matchStatus = !u.isPremium && u.tier !== 'member21';
-          
-          return matchName && matchStatus;
-      });
-
-      return (
-      <div className="animate-in fade-in">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h3 className="text-xl font-bold text-white">Registered Seekers</h3>
-            <div className="flex gap-2 w-full md:w-auto">
-                 <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="bg-mystic-900 border border-mystic-700 rounded-lg px-3 py-2 text-sm text-white outline-none">
-                     <option value="all">All Users</option>
-                     <option value="premium">Premium Only</option>
-                     <option value="member21">Member 21</option>
-                     <option value="free">Free Only</option>
-                 </select>
-                 <input type="text" placeholder="Search by Name/Phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-mystic-900 border border-mystic-700 rounded-lg px-4 py-2 text-sm text-white w-full md:w-64 outline-none" />
-            </div>
-          </div>
-          
-          <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl">
-             <div className="overflow-x-auto">
-                 <table className="w-full text-sm text-left">
-                    <thead className="bg-mystic-800 text-mystic-400 uppercase text-xs font-bold border-b border-white/5">
-                        <tr>
-                            <th className="px-6 py-4">User</th>
-                            <th className="px-6 py-4">Plan Status</th>
-                            <th className="px-6 py-4">Expiry</th>
-                            <th className="px-6 py-4">Daily Limit</th>
-                            <th className="px-6 py-4">Joined</th>
-                            <th className="px-6 py-4 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {filtered.map(user => (
-                            <tr key={user.id} className="hover:bg-white/5 transition-colors group">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-indigo-900 flex items-center justify-center text-white font-bold text-xs shadow-inner">
-                                            {user.name?.charAt(0) || 'U'}
-                                         </div>
-                                         <div>
-                                            <p className="font-bold text-white group-hover:text-gold-400 transition-colors">{user.name}</p>
-                                            <p className="text-xs text-mystic-400 font-mono">{user.contact}</p>
-                                         </div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                     {user.tier === 'member21' ? (
-                                        <span className="bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded text-[10px] font-bold border border-indigo-500/30 uppercase tracking-wide">MEMBER 21</span>
-                                     ) : user.isPremium ? (
-                                        <span className="bg-gold-500/20 text-gold-400 px-2 py-1 rounded text-[10px] font-bold border border-gold-500/30 uppercase tracking-wide">PREMIUM</span> 
-                                     ) : (
-                                        <span className="bg-mystic-800 text-mystic-400 px-2 py-1 rounded text-[10px] uppercase tracking-wide">FREE</span>
-                                     )}
-                                </td>
-                                <td className="px-6 py-4 text-xs font-mono text-mystic-300">
-                                    {user.subscriptionExpiry ? new Date(user.subscriptionExpiry).toLocaleDateString() : 'N/A'}
-                                </td>
-                                <td className="px-6 py-4 text-mystic-300">
-                                    <span className="font-mono text-white">{user.dailyQuestionsLeft}</span> <span className="text-xs">Qs/Day</span>
-                                </td>
-                                <td className="px-6 py-4 text-mystic-500 text-xs">
-                                    {new Date(user.createdAt || Date.now()).toLocaleDateString()}
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex justify-center gap-2">
-                                        <button onClick={() => handleEditUser(user)} className="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg text-xs transition-colors border border-white/5" title="Edit Profile">✏️</button>
-                                        <button onClick={() => handleViewUserChat(user)} className="bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 p-2 rounded-lg text-xs transition-colors border border-violet-500/20" title="View Chat History">💬</button>
-                                        <button onClick={() => onImpersonate(user)} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 p-2 rounded-lg text-xs transition-colors border border-orange-500/20" title="Login As User">🕵️</button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                 </table>
-             </div>
-             {filtered.length === 0 && (
-                 <div className="p-8 text-center text-mystic-500 flex flex-col items-center">
-                     <span className="text-2xl mb-2">⚠️</span>
-                     <p className="italic">No users found.</p>
-                     <p className="text-xs mt-2 opacity-50">Try a different search or filter.</p>
-                 </div>
-             )}
-          </div>
-      </div>
-      );
-  };
-
   return (
     <div className="flex flex-col h-full bg-mystic-950 text-white overflow-hidden">
         <header className="bg-mystic-900/90 backdrop-blur-md border-b border-gold-500/20 p-4 flex justify-between items-center shrink-0 z-20">
@@ -358,6 +277,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     { id: 'gurus', icon: '🧘', label: 'Gurus' },
                     { id: 'shop', icon: '🏷️', label: 'Shop Manager' },
                     { id: 'communications', icon: '📡', label: 'Logs' },
+                    { id: 'usage', icon: '🔮', label: 'API Usage' },
                     { id: 'finance', icon: '💰', label: 'Financials' },
                     { id: 'subscriptions', icon: '✨', label: 'Subscriptions' }
                 ].map(item => (
@@ -369,7 +289,91 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-black/20">
                 {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'users' && renderSeekers()}
+                
+                {/* ... (Existing tabs: users, gurus, shop) ... */}
+                {activeTab === 'users' && (
+                    /* ...existing user code... */
+                    <div className="animate-in fade-in">
+                        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                            <h3 className="text-xl font-bold text-white">Registered Seekers</h3>
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="bg-mystic-900 border border-mystic-700 rounded-lg px-3 py-2 text-sm text-white outline-none">
+                                    <option value="all">All Users</option>
+                                    <option value="premium">Premium Only</option>
+                                    <option value="member21">Member 21</option>
+                                    <option value="free">Free Only</option>
+                                </select>
+                                <input type="text" placeholder="Search by Name/Phone..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-mystic-900 border border-mystic-700 rounded-lg px-4 py-2 text-sm text-white w-full md:w-64 outline-none" />
+                            </div>
+                        </div>
+                        
+                        <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-mystic-800 text-mystic-400 uppercase text-xs font-bold border-b border-white/5">
+                                        <tr>
+                                            <th className="px-6 py-4">User</th>
+                                            <th className="px-6 py-4">Plan Status</th>
+                                            <th className="px-6 py-4">Expiry</th>
+                                            <th className="px-6 py-4">Daily Limit</th>
+                                            <th className="px-6 py-4">Joined</th>
+                                            <th className="px-6 py-4 text-center">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {users.filter(u => {
+                                            const matchName = u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.contact?.includes(searchTerm);
+                                            let matchStatus = true;
+                                            if (filterStatus === 'premium') matchStatus = u.isPremium;
+                                            else if (filterStatus === 'member21') matchStatus = u.tier === 'member21';
+                                            else if (filterStatus === 'free') matchStatus = !u.isPremium && u.tier !== 'member21';
+                                            return matchName && matchStatus;
+                                        }).map(user => (
+                                            <tr key={user.id} className="hover:bg-white/5 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-600 to-indigo-900 flex items-center justify-center text-white font-bold text-xs shadow-inner">
+                                                            {user.name?.charAt(0) || 'U'}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-white group-hover:text-gold-400 transition-colors">{user.name}</p>
+                                                            <p className="text-xs text-mystic-400 font-mono">{user.contact}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {user.tier === 'member21' ? (
+                                                        <span className="bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded text-[10px] font-bold border border-indigo-500/30 uppercase tracking-wide">MEMBER 21</span>
+                                                    ) : user.isPremium ? (
+                                                        <span className="bg-gold-500/20 text-gold-400 px-2 py-1 rounded text-[10px] font-bold border border-gold-500/30 uppercase tracking-wide">PREMIUM</span> 
+                                                    ) : (
+                                                        <span className="bg-mystic-800 text-mystic-400 px-2 py-1 rounded text-[10px] uppercase tracking-wide">FREE</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 text-xs font-mono text-mystic-300">
+                                                    {user.subscriptionExpiry ? new Date(user.subscriptionExpiry).toLocaleDateString() : 'N/A'}
+                                                </td>
+                                                <td className="px-6 py-4 text-mystic-300">
+                                                    <span className="font-mono text-white">{user.dailyQuestionsLeft}</span> <span className="text-xs">Qs/Day</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-mystic-500 text-xs">
+                                                    {new Date(user.createdAt || Date.now()).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button onClick={() => handleEditUser(user)} className="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg text-xs transition-colors border border-white/5" title="Edit Profile">✏️</button>
+                                                        <button onClick={() => handleViewUserChat(user)} className="bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 p-2 rounded-lg text-xs transition-colors border border-violet-500/20" title="View Chat History">💬</button>
+                                                        <button onClick={() => onImpersonate(user)} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 p-2 rounded-lg text-xs transition-colors border border-orange-500/20" title="Login As User">🕵️</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 
                 {activeTab === 'gurus' && (
                     <div className="animate-in fade-in"> 
@@ -544,19 +548,107 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </div>
                 )}
                 
-                {activeTab === 'finance' && (
+                {activeTab === 'usage' && (
                     <div className="animate-in fade-in">
-                        <h3 className="text-xl font-bold mb-6 text-white">Financial Ledger</h3>
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white">AI Token Usage Log</h3>
+                            <div className="text-xs text-mystic-400">Total Tracked: {usageStats.totalRequests}</div>
+                        </div>
                         <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl">
                              <div className="overflow-x-auto">
+                                <table className="w-full text-xs text-left">
+                                    <thead className="bg-mystic-800 text-mystic-400 uppercase font-bold border-b border-white/5">
+                                        <tr>
+                                            <th className="px-6 py-3">Timestamp</th>
+                                            <th className="px-6 py-3">User ID</th>
+                                            <th className="px-6 py-3">Feature</th>
+                                            <th className="px-6 py-3 text-right">Input Tokens</th>
+                                            <th className="px-6 py-3 text-right">Output Tokens</th>
+                                            <th className="px-6 py-3 text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {usageLogs.map((l, i) => (
+                                            <tr key={l.id || i} className="hover:bg-white/5">
+                                                <td className="px-6 py-3 text-mystic-500 font-mono">{new Date(l.timestamp).toLocaleString()}</td>
+                                                <td className="px-6 py-3 text-white max-w-[100px] truncate" title={l.user_id}>{l.user_id}</td>
+                                                <td className="px-6 py-3">
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${l.feature === 'chat' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>{l.feature}</span>
+                                                </td>
+                                                <td className="px-6 py-3 text-right text-mystic-400">{l.input_tokens}</td>
+                                                <td className="px-6 py-3 text-right text-mystic-400">{l.output_tokens}</td>
+                                                <td className="px-6 py-3 text-right font-bold text-indigo-400">{l.total_tokens}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                             </div>
+                             {usageLogs.length === 0 && (
+                                <div className="p-8 text-center text-mystic-500">
+                                    <p>No usage logs found. Ensure DB 'usage_logs' table exists.</p>
+                                </div>
+                             )}
+                        </div>
+                    </div>
+                )}
+                
+                {activeTab === 'finance' && (
+                    <div className="animate-in fade-in space-y-8">
+                        {/* Payout Requests Section */}
+                        <div>
+                            <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
+                                <span>🏦</span> Payout Requests
+                            </h3>
+                            <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-mystic-800 text-mystic-400 uppercase text-xs font-bold border-b border-white/5">
                                         <tr>
                                             <th className="px-6 py-4">Date</th>
-                                            <th className="px-6 py-4">Transaction ID</th>
+                                            <th className="px-6 py-4">Guru</th>
+                                            <th className="px-6 py-4">Amount</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {payouts.map(p => (
+                                            <tr key={p.id} className="hover:bg-white/5">
+                                                <td className="px-6 py-4 text-xs font-mono text-mystic-500">{new Date(p.date).toLocaleDateString()}</td>
+                                                <td className="px-6 py-4 font-bold text-white">{p.astrologerName}</td>
+                                                <td className="px-6 py-4 font-mono text-gold-400">₹{p.amount.toLocaleString()}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
+                                                        p.status === 'Completed' ? 'bg-green-500/20 text-green-400' :
+                                                        p.status === 'Rejected' ? 'bg-red-500/20 text-red-400' :
+                                                        'bg-yellow-500/20 text-yellow-400 animate-pulse'
+                                                    }`}>{p.status}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    {p.status === 'Processing' && (
+                                                        <div className="flex justify-end gap-2">
+                                                            <button onClick={() => handlePayoutAction(p.id, 'Completed')} className="bg-green-600 hover:bg-green-500 text-white text-[10px] px-3 py-1.5 rounded font-bold transition-colors">Pay</button>
+                                                            <button onClick={() => handlePayoutAction(p.id, 'Rejected')} className="bg-red-600 hover:bg-red-500 text-white text-[10px] px-3 py-1.5 rounded font-bold transition-colors">Reject</button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {payouts.length === 0 && <div className="p-6 text-center text-mystic-500 text-sm">No pending payout requests.</div>}
+                            </div>
+                        </div>
+
+                        {/* Existing Transaction Ledger */}
+                        <div>
+                            <h3 className="text-xl font-bold mb-4 text-white">All Transactions</h3>
+                            <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl max-h-96 overflow-y-auto">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-mystic-800 text-mystic-400 uppercase text-xs font-bold border-b border-white/5 sticky top-0">
+                                        <tr>
+                                            <th className="px-6 py-4">Date</th>
                                             <th className="px-6 py-4">Type</th>
                                             <th className="px-6 py-4">User</th>
-                                            <th className="px-6 py-4">Details</th>
                                             <th className="px-6 py-4 text-right">Amount</th>
                                         </tr>
                                     </thead>
@@ -564,30 +656,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         {transactions.map(t => (
                                             <tr key={t.id} className="hover:bg-white/5">
                                                 <td className="px-6 py-4 text-mystic-500 font-mono text-xs">{t.date}</td>
-                                                <td className="px-6 py-4 text-mystic-500 font-mono text-xs">{t.id}</td>
                                                 <td className="px-6 py-4">
                                                     <span className={`px-2 py-1 rounded text-[10px] uppercase font-bold ${
                                                         t.type === 'Product' ? 'bg-blue-500/10 text-blue-400' :
                                                         t.type === 'Subscription' ? 'bg-purple-500/10 text-purple-400' :
-                                                        t.type === 'Dakshina' ? 'bg-gold-500/10 text-gold-400' :
                                                         'bg-green-500/10 text-green-400'
                                                     }`}>{t.type}</span>
                                                 </td>
                                                 <td className="px-6 py-4 text-white">{t.userName}</td>
-                                                <td className="px-6 py-4 text-mystic-400 text-xs">{t.details}</td>
                                                 <td className="px-6 py-4 text-right font-mono text-gold-400 font-bold">₹{t.amount}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                             </div>
-                             {transactions.length === 0 && (
-                                <div className="p-8 text-center text-mystic-500 flex flex-col items-center">
-                                    <span className="text-2xl mb-2">⚠️</span>
-                                    <p className="italic">No transactions found.</p>
-                                    <p className="text-xs mt-2 opacity-50">Ensure 'transactions' table RLS policies allow reading.</p>
-                                </div>
-                             )}
+                            </div>
                         </div>
                     </div>
                 )}

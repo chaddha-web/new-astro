@@ -3,9 +3,11 @@ import bcrypt from 'bcryptjs';
 import CryptoJS from 'crypto-js';
 import LZString from 'lz-string';
 
-// Secret key for client-side encryption (In prod, this should be handled better or per-user)
+// Secret key for client-side encryption (data privacy)
 const ENCRYPTION_SECRET = "ASTRO_VASTU_SECURE_KEY_9988";
-const JWT_SECRET = "ASTRO_COSMIC_jwt_SECRET_7DAYS_KEY";
+
+// JWT Secret: Prioritize environment variable, fallback to internal key for dev
+const JWT_SECRET = process.env.JWT_SECRET || "ASTRO_COSMIC_jwt_SECRET_7DAYS_KEY";
 
 export const hashPassword = async (password: string): Promise<string> => {
   const salt = await bcrypt.genSalt(10);
@@ -65,25 +67,31 @@ const base64UrlDecode = (str: string): string => {
 }
 
 export const generateJWT = (contact: string): string => {
-    const header = { alg: "HS256", typ: "JWT" };
-    const now = Date.now();
-    const expiry = now + (7 * 24 * 60 * 60 * 1000); // 7 Days
-    const payload = { sub: contact, iat: now, exp: expiry };
+    try {
+        const header = { alg: "HS256", typ: "JWT" };
+        const now = Date.now();
+        const expiry = now + (7 * 24 * 60 * 60 * 1000); // 7 Days validity
+        const payload = { sub: contact, iat: now, exp: expiry };
 
-    const stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(header));
-    const encodedHeader = base64UrlEncode(stringifiedHeader);
+        const stringifiedHeader = CryptoJS.enc.Utf8.parse(JSON.stringify(header));
+        const encodedHeader = base64UrlEncode(stringifiedHeader);
 
-    const stringifiedPayload = CryptoJS.enc.Utf8.parse(JSON.stringify(payload));
-    const encodedPayload = base64UrlEncode(stringifiedPayload);
+        const stringifiedPayload = CryptoJS.enc.Utf8.parse(JSON.stringify(payload));
+        const encodedPayload = base64UrlEncode(stringifiedPayload);
 
-    const signature = CryptoJS.HmacSHA256(encodedHeader + "." + encodedPayload, JWT_SECRET);
-    const encodedSignature = base64UrlEncode(signature);
+        const signature = CryptoJS.HmacSHA256(encodedHeader + "." + encodedPayload, JWT_SECRET);
+        const encodedSignature = base64UrlEncode(signature);
 
-    return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+        return `${encodedHeader}.${encodedPayload}.${encodedSignature}`;
+    } catch (e) {
+        console.error("Error generating JWT", e);
+        return "";
+    }
 };
 
 export const verifyJWT = (token: string): string | null => {
     try {
+        if (!token) return null;
         const parts = token.split('.');
         if (parts.length !== 3) return null;
 
@@ -92,15 +100,22 @@ export const verifyJWT = (token: string): string | null => {
         const testSignature = CryptoJS.HmacSHA256(header + "." + payload, JWT_SECRET);
         const encodedTestSignature = base64UrlEncode(testSignature);
 
-        if (encodedTestSignature !== signature) return null;
+        if (encodedTestSignature !== signature) {
+            console.warn("JWT Signature mismatch");
+            return null;
+        }
 
         const decodedPayload = JSON.parse(base64UrlDecode(payload));
         
         // Check Expiry
-        if (Date.now() > decodedPayload.exp) return null;
+        if (Date.now() > decodedPayload.exp) {
+            console.warn("JWT Token Expired");
+            return null;
+        }
 
-        return decodedPayload.sub; // Returns contact
+        return decodedPayload.sub; // Returns the contact (subject)
     } catch (e) {
+        console.error("JWT Verification Error", e);
         return null;
     }
 };

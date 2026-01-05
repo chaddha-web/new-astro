@@ -92,6 +92,7 @@ export interface Transaction {
   status: 'Success' | 'Failed';
   date: string;
   details: string;
+  relatedEntityId?: string; // ID of Astrologer or Product for attribution
 }
 
 export interface CommunicationLog {
@@ -162,14 +163,20 @@ export enum AppView {
 }
 
 export interface HoroscopeData {
+  starSign: string;
+  meta?: {
+    dailyDate?: string;
+    weekDate?: string;
+    monthDate?: string;
+  };
   daily: {
-    overview: string;
+    overview: string; // Detailed View
+    simple_overview: string; // Simple explanation
     dos: string[];
     donts: string[];
     luckyColor: string;
     luckyNumber: string;
   };
-  weekly: string;
-  monthly: string;
-  starSign: string;
+  weekly: string; // Includes date range in text
+  monthly: string; // Detailed overview
 }

@@ -1,8 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Message, UserState, Sender, Astrologer, Product, Earnings, BankDetails, PayoutRecord } from '../../types';
 import { MOCK_PRODUCTS, formatDisplayName } from '../../constants';
 import NatalChart from '../Astrology/NatalChart';
+import { decryptAndDecompress } from '../../services/securityService';
+import { fetchAstrologerEarnings, requestPayout, fetchPayoutHistory } from '../../services/dbService';
 
 interface AstrologerDashboardProps {
   activeUser: UserState;
@@ -11,9 +13,10 @@ interface AstrologerDashboardProps {
   earnings: Record<string, Earnings>;
   astrologers?: Astrologer[];
   products?: Product[];
+  users?: any[]; // Added to detect active clients
 }
 
-const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, messages, onAction, earnings, astrologers = [], products = MOCK_PRODUCTS }) => {
+const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, messages, onAction, earnings, astrologers = [], products = MOCK_PRODUCTS, users = [] }) => {
   const [replyText, setReplyText] = useState('');
   const [currentGuru, setCurrentGuru] = useState<Astrologer | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -21,6 +24,10 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
   const [showClientDetails, setShowClientDetails] = useState(false);
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [showEarningsModal, setShowEarningsModal] = useState(false);
+
+  // Client Chat State
+  const [connectedClient, setConnectedClient] = useState<any | null>(null);
+  const [clientMessages, setClientMessages] = useState<Message[]>([]);
 
   // Bank & Payout State
   const [showBankModal, setShowBankModal] = useState(false);
@@ -32,8 +39,54 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
       upiId: ''
   });
   const [payoutHistory, setPayoutHistory] = useState<PayoutRecord[]>([]);
+  const [realEarnings, setRealEarnings] = useState<Earnings>({ chats: 0, products: 0, tips: 0, withdrawn: 0 });
 
-  const activeUserName = formatDisplayName(activeUser.name);
+  // Effect to find active client connected to this Guru
+  useEffect(() => {
+    if (!currentGuru) return;
+    const client = users.find(u => u.connectedAstrologerId === currentGuru.id);
+    setConnectedClient(client || null);
+    
+    // If client is found, load their messages
+    if (client && client.chatHistory) {
+        try {
+            const decrypted = decryptAndDecompress(client.chatHistory);
+            if (decrypted) {
+                 // Sort by timestamp if needed, though they usually come sorted
+                 setClientMessages(decrypted);
+            }
+        } catch (e) {
+            console.error("Failed to decrypt client messages", e);
+            setClientMessages([]);
+        }
+    } else {
+        setClientMessages([]);
+    }
+  }, [users, currentGuru]);
+
+  // Effect to fetch Real Earnings and Payouts
+  useEffect(() => {
+      const loadFinancials = async () => {
+          if (currentGuru) {
+              try {
+                  const [earned, payouts] = await Promise.all([
+                      fetchAstrologerEarnings(currentGuru.id),
+                      fetchPayoutHistory(currentGuru.id)
+                  ]);
+                  setRealEarnings(earned);
+                  setPayoutHistory(payouts);
+              } catch (e) {
+                  console.error("Failed to load financials", e);
+              }
+          }
+      };
+      
+      if (showEarningsModal && currentGuru) {
+          loadFinancials();
+      }
+  }, [showEarningsModal, currentGuru]);
+
+  const activeUserName = connectedClient ? formatDisplayName(connectedClient.name) : 'Seeker';
 
   const handleSend = () => {
     if (replyText.trim()) {
@@ -64,6 +117,7 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
       onAction('end_session', null);
       setIsChatOpen(false);
       setShowClientDetails(false);
+      setConnectedClient(null);
   };
 
   const handleRecommendProduct = (product: Product) => {
@@ -71,17 +125,10 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
       setShowProductSelector(false);
   };
 
-  // --- Bank & Payout Logic ---
-  const handleSaveBankDetails = () => {
-      // Simulate API Save
-      setShowBankModal(false);
-      alert("Bank details updated successfully!");
-  };
-
-  const handleRequestPayout = () => {
-      const myEarnings = currentGuru ? (earnings[currentGuru.id] || { chats: 0, products: 0, tips: 0, withdrawn: 0 }) : { chats: 0, products: 0, tips: 0, withdrawn: 0 };
-      const totalEarnings = myEarnings.chats + myEarnings.products + myEarnings.tips;
-      const withdrawn = myEarnings.withdrawn || 0;
+  const handleRequestPayout = async () => {
+      if (!currentGuru) return;
+      const totalEarnings = realEarnings.chats + realEarnings.products + realEarnings.tips;
+      const withdrawn = realEarnings.withdrawn || 0;
       const availableBalance = totalEarnings - withdrawn;
       
       if (availableBalance < 500) {
@@ -89,17 +136,19 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
           return;
       }
       
-      const newRecord: PayoutRecord = {
-          id: `PAY-${Math.floor(Math.random() * 10000)}`,
-          amount: availableBalance,
-          date: new Date().toISOString().split('T')[0],
-          status: 'Processing',
-          referenceId: 'PENDING'
-      };
-      
-      setPayoutHistory([newRecord, ...payoutHistory]);
-      onAction('payout', { astroId: currentGuru?.id, amount: availableBalance });
-      alert(`Payout request for ₹${availableBalance.toLocaleString()} initiated!`);
+      const success = await requestPayout(currentGuru.id, availableBalance);
+      if (success) {
+          alert(`Payout request for ₹${availableBalance.toLocaleString()} initiated!`);
+          // Refresh data
+          const [earned, payouts] = await Promise.all([
+              fetchAstrologerEarnings(currentGuru.id),
+              fetchPayoutHistory(currentGuru.id)
+          ]);
+          setRealEarnings(earned);
+          setPayoutHistory(payouts);
+      } else {
+          alert("Failed to initiate payout. Please check logs.");
+      }
   };
 
   // --- Visual Chart Components ---
@@ -184,12 +233,11 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
       );
   }
 
-  const myEarnings = earnings[currentGuru.id] || { chats: 0, products: 0, tips: 0, withdrawn: 0 };
-  const totalEarnings = myEarnings.chats + myEarnings.products + myEarnings.tips;
-  const withdrawn = myEarnings.withdrawn || 0;
+  // Use Real Earnings if available, else fallback to props (which might be outdated)
+  const displayEarnings = realEarnings.chats + realEarnings.products + realEarnings.tips > 0 ? realEarnings : (earnings[currentGuru.id] || { chats: 0, products: 0, tips: 0, withdrawn: 0 });
+  const totalEarnings = displayEarnings.chats + displayEarnings.products + displayEarnings.tips;
+  const withdrawn = displayEarnings.withdrawn || 0;
   const availableBalance = totalEarnings - withdrawn;
-  
-  const isClientConnected = activeUser.connectedAstrologerId === currentGuru.id;
 
   // 2. DASHBOARD (CLIENT LIST & OVERVIEW)
   if (!isChatOpen) {
@@ -231,10 +279,10 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
                 <div className="lg:col-span-2 space-y-4">
                      <h3 className="text-sm font-bold text-mystic-300 uppercase tracking-widest flex items-center gap-2 mb-2">
                         <span>Incoming Consultations</span>
-                        <span className="bg-mystic-700 text-white text-[10px] px-2 py-0.5 rounded-full">{isClientConnected ? '1' : '0'}</span>
+                        <span className="bg-mystic-700 text-white text-[10px] px-2 py-0.5 rounded-full">{connectedClient ? '1' : '0'}</span>
                     </h3>
 
-                    {isClientConnected ? (
+                    {connectedClient ? (
                         <div 
                             onClick={() => setIsChatOpen(true)}
                             className="bg-gradient-to-r from-mystic-800 to-mystic-800/50 border border-green-500/30 p-6 rounded-2xl cursor-pointer hover:border-green-500/60 transition-all group relative overflow-hidden shadow-lg transform hover:-translate-y-1"
@@ -317,13 +365,45 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
                                 <ActivityLineChart />
                             </div>
                             <div className="md:col-span-4 grid grid-cols-1 gap-4">
-                                <StatCard label="Consultations (90%)" value={`₹${myEarnings.chats.toLocaleString()}`} colorClass="text-green-400" />
-                                <StatCard label="Commissions (10%)" value={`₹${myEarnings.products.toLocaleString()}`} colorClass="text-gold-400" />
-                                <StatCard label="Dakshina (80%)" value={`₹${myEarnings.tips.toLocaleString()}`} colorClass="text-violet-400" />
+                                <StatCard label="Consultations (90%)" value={`₹${displayEarnings.chats.toLocaleString()}`} colorClass="text-green-400" />
+                                <StatCard label="Commissions (10%)" value={`₹${displayEarnings.products.toLocaleString()}`} colorClass="text-gold-400" />
+                                <StatCard label="Dakshina (80%)" value={`₹${displayEarnings.tips.toLocaleString()}`} colorClass="text-violet-400" />
                             </div>
                          </div>
+                         
+                         {/* Payout History */}
+                         <div className="mb-6">
+                             <h4 className="text-sm font-bold text-mystic-300 uppercase tracking-widest mb-3">Recent Payouts</h4>
+                             <div className="bg-black/20 rounded-xl overflow-hidden border border-white/5">
+                                 {payoutHistory.length === 0 ? (
+                                     <p className="text-center text-mystic-500 py-6 text-sm">No payout history available.</p>
+                                 ) : (
+                                     <table className="w-full text-left text-xs">
+                                         <thead className="bg-white/5 text-mystic-400">
+                                             <tr>
+                                                 <th className="p-3">Date</th>
+                                                 <th className="p-3">Ref ID</th>
+                                                 <th className="p-3">Status</th>
+                                                 <th className="p-3 text-right">Amount</th>
+                                             </tr>
+                                         </thead>
+                                         <tbody className="divide-y divide-white/5">
+                                             {payoutHistory.map(p => (
+                                                 <tr key={p.id} className="hover:bg-white/5">
+                                                     <td className="p-3">{new Date(p.date).toLocaleDateString()}</td>
+                                                     <td className="p-3 font-mono">{p.referenceId}</td>
+                                                     <td className="p-3"><span className={`px-2 py-0.5 rounded text-[10px] uppercase ${p.status === 'Completed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{p.status}</span></td>
+                                                     <td className="p-3 text-right font-bold text-white">₹{p.amount.toLocaleString()}</td>
+                                                 </tr>
+                                             ))}
+                                         </tbody>
+                                     </table>
+                                 )}
+                             </div>
+                         </div>
+
                          <div className="flex gap-3">
-                             <button onClick={handleRequestPayout} disabled={availableBalance < 500} className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-xl text-sm disabled:opacity-50">Withdraw Balance</button>
+                             <button onClick={handleRequestPayout} disabled={availableBalance < 500} className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-xl text-sm disabled:opacity-50 transition-colors shadow-lg">Withdraw Balance</button>
                          </div>
                      </div>
                 </div>
@@ -333,6 +413,8 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
   }
 
   // 3. CHAT INTERFACE
+  const displayMessages = clientMessages.length > 0 ? clientMessages : messages;
+
   return (
     <div className="flex flex-col h-full bg-mystic-900/90 text-white rounded-xl overflow-hidden border border-gold-500/20 animate-in slide-in-from-right-10 duration-300 relative">
       {/* Active Chat Header */}
@@ -352,8 +434,8 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
 
       {/* Chat History */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/20">
-         {messages.length === 0 && <div className="text-center text-mystic-500 mt-10 italic">Start the conversation with a blessing...</div>}
-         {messages.map((msg) => (
+         {displayMessages.length === 0 && <div className="text-center text-mystic-500 mt-10 italic">Start the conversation with a blessing...</div>}
+         {displayMessages.map((msg) => (
            <div key={msg.id} className={`flex flex-col ${msg.sender === Sender.USER ? 'items-start' : 'items-end'}`}>
              <div className={`text-[10px] mb-1 opacity-70 ${msg.sender === Sender.USER ? 'text-violet-300 ml-1' : 'text-gold-300 mr-1'}`}>
                 {msg.sender === Sender.USER ? activeUserName : msg.sender === Sender.ASTROLOGER ? 'You' : 'System'}
