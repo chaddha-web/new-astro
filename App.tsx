@@ -121,6 +121,7 @@ export default function App() {
   const [selectedProductForPurchase, setSelectedProductForPurchase] = useState<Product | null>(null);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [pendingPayment, setPendingPayment] = useState<{ amount: number; description: string; onSuccess: () => void; contact?: string; } | null>(null);
+  const [missingContactInfo, setMissingContactInfo] = useState('');
   const [callState, setCallState] = useState<CallState>({ isActive: false, type: 'voice', partnerName: '', partnerImage: '', channelName: '' });
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingTarget, setRatingTarget] = useState<Astrologer | null>(null);
@@ -793,7 +794,12 @@ export default function App() {
       return false; 
   };
 
-  const initiatePayment = (amount: number, desc: string, success: () => void, contact?: string) => { setPendingPayment({ amount, description: desc, onSuccess: success, contact }); setShowPaymentConfirmation(true); };
+  const initiatePayment = (amount: number, desc: string, success: () => void, contact?: string) => { 
+      setPendingPayment({ amount, description: desc, onSuccess: success, contact }); 
+      setMissingContactInfo(''); 
+      setShowPaymentConfirmation(true); 
+  };
+
   // Updated to update local earnings state but real persistence happens via DB queries now
   const updateEarnings = (id: string, type: keyof Earnings, amt: number) => setAstrologerEarnings(p => ({...p, [id]: {...(p[id]||{chats:0,products:0,tips:0,withdrawn:0}), [type]: (p[id]?.[type]||0)+amt}}));
   
@@ -812,6 +818,15 @@ export default function App() {
   
   const proceedToRazorpay = () => { 
       if(pendingPayment && window.Razorpay) { 
+          // Detect primary contact and missing info
+          const primaryContact = pendingPayment.contact || userState.contact || '';
+          const isPrimaryEmail = primaryContact.includes('@');
+          
+          const prefillData = {
+              email: isPrimaryEmail ? primaryContact : missingContactInfo,
+              contact: isPrimaryEmail ? missingContactInfo : primaryContact
+          };
+
           // Helper to create options safely
           const createOptions = (key: string) => ({ 
               key: key.trim(), // Ensure no whitespace
@@ -820,7 +835,7 @@ export default function App() {
               name: "Astro21", 
               description: pendingPayment.description, 
               handler: () => { pendingPayment.onSuccess(); setShowPaymentConfirmation(false); }, 
-              prefill: { contact: pendingPayment.contact },
+              prefill: prefillData,
               theme: { color: "#DAA520" }
           });
           
@@ -1009,7 +1024,49 @@ export default function App() {
         )}
       </main>
 
-      {showPaymentConfirmation && pendingPayment && <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90"><div className="bg-mystic-800 p-8 rounded-3xl text-center"><h3 className="text-xl font-serif text-white mb-2">Confirm Payment</h3><p className="text-mystic-300 mb-6">₹{pendingPayment.amount}</p><div className="flex gap-3"><button onClick={()=>setShowPaymentConfirmation(false)} className="flex-1 bg-white/5 py-3 rounded-xl text-white">Cancel</button><button onClick={proceedToRazorpay} className="flex-1 bg-gold-500 py-3 rounded-xl text-black font-bold">Pay Now</button></div></div></div>}
+      {showPaymentConfirmation && pendingPayment && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90">
+            <div className="bg-mystic-800 p-8 rounded-3xl text-center w-full max-w-sm">
+                <h3 className="text-xl font-serif text-white mb-2">Confirm Payment</h3>
+                <p className="text-mystic-300 mb-6">₹{pendingPayment.amount}</p>
+                
+                {/* Data Collection for Razorpay */}
+                <div className="mb-6 text-left">
+                    {(() => {
+                        const primary = pendingPayment.contact || userState.contact || '';
+                        const isEmail = primary.includes('@');
+                        return (
+                            <div>
+                                <label className="text-[10px] uppercase text-mystic-400 font-bold ml-1 mb-1 block">
+                                    {isEmail ? 'Mobile Number (Required)' : 'Email Address (Required)'}
+                                </label>
+                                <input 
+                                    type={isEmail ? "tel" : "email"}
+                                    value={missingContactInfo}
+                                    onChange={(e) => setMissingContactInfo(e.target.value)}
+                                    placeholder={isEmail ? "Enter Mobile Number" : "Enter Email Address"}
+                                    className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-all text-sm"
+                                    autoFocus
+                                />
+                            </div>
+                        );
+                    })()}
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={()=>setShowPaymentConfirmation(false)} className="flex-1 bg-white/5 py-3 rounded-xl text-white font-bold text-sm">Cancel</button>
+                    <button 
+                        onClick={proceedToRazorpay} 
+                        disabled={!missingContactInfo || missingContactInfo.length < 5}
+                        className="flex-1 bg-gold-500 hover:bg-gold-400 py-3 rounded-xl text-black font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Pay Now
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {showChartModal && <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90"><div className="bg-mystic-900 border border-gold-500/50 p-6 rounded-3xl w-full max-w-lg relative"><button onClick={()=>setShowChartModal(false)} className="absolute top-4 right-4 text-white">✕</button><NatalChart name={userState.name} date={userState.birthDate||''} time={userState.birthTime||''} place={userState.birthPlace||''} allowDownload={true} isPremium={userState.isPremium} onUnlock={()=>{setShowChartModal(false);setShowPremiumModal(true)}}/></div></div>}
       {showProfileModal && <ProfileModal user={userState} onSave={(u)=>setUserState(p=>({...p,...u}))} onClose={()=>setShowProfileModal(false)}/>}
       {showTipModal && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"><div className="bg-mystic-800 p-6 rounded-2xl w-full max-w-xs text-center"><h3 className="text-gold-400 mb-4">Support Guru</h3><input type="number" value={tipAmount} onChange={e=>setTipAmount(e.target.value)} className="w-full bg-mystic-900 p-2 mb-4 text-white text-center"/><button onClick={()=>{const a=Number(tipAmount); if(a>0) handleGuruDakshina(a)}} className="w-full bg-gold-500 text-black font-bold py-2 rounded">Send</button><button onClick={()=>setShowTipModal(false)} className="mt-3 text-xs text-gray-400">Cancel</button></div></div>}
