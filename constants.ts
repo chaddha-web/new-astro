@@ -25,7 +25,7 @@ export const TRANSLATIONS = {
         profile: "Profile",
         connect: "Connect",
         typeMessage: "Type your guidance...",
-        recording: "Recording...",
+        recording: "Listening...",
         premium: "Premium Energy",
         free: "Free Energy",
         buyNow: "Buy Now",
@@ -49,7 +49,7 @@ export const TRANSLATIONS = {
         profile: "प्रोफाइल",
         connect: "जुड़ें",
         typeMessage: "अपना प्रश्न लिखें...",
-        recording: "रिकॉर्डिंग...",
+        recording: "सुन रहा हूँ...",
         premium: "प्रीमियम ऊर्जा",
         free: "मुफ्त ऊर्जा",
         buyNow: "अभी खरीदें",
@@ -64,6 +64,102 @@ export const TRANSLATIONS = {
         getVisualVastu: "वास्तु मानचित्र और उपाय प्राप्त करें",
         upgrade: "अपग्रेड करें",
         recommendedRemedy: "सुझाया गया उपाय"
+    },
+    te: {
+        appName: "ఆస్ట్రో-21",
+        chat: "చాట్",
+        gurus: "గురువులు",
+        shop: "అంగడి",
+        profile: "ప్రొఫైల్",
+        connect: "కనెక్ట్",
+        typeMessage: "మీ ప్రశ్నను టైప్ చేయండి...",
+        recording: "వింటున్నాను...",
+        premium: "ప్రీమియం శక్తి",
+        free: "ఉచిత శక్తి",
+        buyNow: "ఇప్పుడే కొనండి",
+        unlock: "పూర్తి ఫలితాలు",
+        endChat: "ముగించు",
+        tip: "దక్షిణ",
+        yourChart: "మీ జాతకం",
+        celestialGuidance: "దైవిక మార్గదర్శకత్వం",
+        cautionaryNote: "హెచ్చరిక",
+        unlockFullReading: "పూర్తి విశ్లేషణను అన్‌లాక్ చేయండి",
+        fullVastuRemedies: "పూర్తి వాస్తు & పరిహారాలు",
+        getVisualVastu: "వాస్తు మ్యాప్ & పరిహారాలు పొందండి",
+        upgrade: "అప్‌గ్రేడ్",
+        recommendedRemedy: "సూచించబడిన పరిహారం"
+    },
+    mr: {
+        appName: "अॅस्ट्रो-21",
+        chat: "गप्पा",
+        gurus: "गुरु",
+        shop: "दुकान",
+        profile: "प्रोफाईल",
+        connect: "जोडा",
+        typeMessage: "तुमचा प्रश्न विचारा...",
+        recording: "ऐकत आहे...",
+        premium: "प्रीमियम",
+        free: "मोफत",
+        buyNow: "आता खरेदी करा",
+        unlock: "पूर्ण ज्ञान उघडा",
+        endChat: "संभाषण संपवा",
+        tip: "दक्षिणा",
+        yourChart: "तुमची कुंडली",
+        celestialGuidance: "दैवी मार्गदर्शन",
+        cautionaryNote: "सावधानता",
+        unlockFullReading: "पूर्ण विश्लेषण उघडा",
+        fullVastuRemedies: "पूर्ण वास्तू आणि उपाय",
+        getVisualVastu: "वास्तू नकाशे आणि उपाय मिळवा",
+        upgrade: "अपग्रेड करा",
+        recommendedRemedy: "सुचवलेला उपाय"
+    },
+    ml: {
+        appName: "ആസ്ട്രോ-21",
+        chat: "ചാറ്റ്",
+        gurus: "ഗുരുക്കന്മാർ",
+        shop: "കട",
+        profile: "പ്രൊഫൈൽ",
+        connect: "ബന്ധപ്പെടുക",
+        typeMessage: "നിങ്ങളുടെ ചോദ്യം...",
+        recording: "ശ്രദ്ധിക്കുന്നു...",
+        premium: "പ്രീമിയം",
+        free: "സൗജന്യം",
+        buyNow: "വാങ്ങുക",
+        unlock: "തുറക്കുക",
+        endChat: "അവസാനിപ്പിക്കുക",
+        tip: "ദക്ഷിണ",
+        yourChart: "ജാതകം",
+        celestialGuidance: "ദിവ്യ മാർഗ്ഗനിർദ്ദേശം",
+        cautionaryNote: "മുന്നറിയിപ്പ്",
+        unlockFullReading: "പൂർണ്ണ വിവരങ്ങൾ കാണുക",
+        fullVastuRemedies: "വാസ്തു പരിഹാരങ്ങൾ",
+        getVisualVastu: "വാസ്തു മാപ്പുകൾ നേടൂ",
+        upgrade: "അപ്‌ഗ്രേഡ്",
+        recommendedRemedy: "നിർദ്ദേശിച്ച പരിഹാരം"
+    },
+    pa: {
+        appName: "ਐਸਟ੍ਰੋ-21",
+        chat: "ਗੱਲਬਾਤ",
+        gurus: "ਗੁਰੂ",
+        shop: "ਦੁਕਾਨ",
+        profile: "ਪ੍ਰੋਫਾਈਲ",
+        connect: "ਜੁੜੋ",
+        typeMessage: "ਆਪਣਾ ਸਵਾਲ ਲਿਖੋ...",
+        recording: "ਸੁਣ ਰਿਹਾ ਹਾਂ...",
+        premium: "ਪ੍ਰੀਮੀਅਮ",
+        free: "ਮੁਫ਼ਤ",
+        buyNow: "ਹੁਣੇ ਖਰੀਦੋ",
+        unlock: "ਅਨਲੌਕ ਕਰੋ",
+        endChat: "ਸਮਾਪਤ ਕਰੋ",
+        tip: "ਦੱਖਣਾ",
+        yourChart: "ਤੁਹਾਡੀ ਕੁੰਡਲੀ",
+        celestialGuidance: "ਰੱਬੀ ਅਗਵਾਈ",
+        cautionaryNote: "ਸਾਵਧਾਨੀ",
+        unlockFullReading: "ਪੂਰਾ ਵਿਸ਼ਲੇਸ਼ਣ ਖੋਲ੍ਹੋ",
+        fullVastuRemedies: "ਪੂਰਾ ਵਾਸਤੂ ਅਤੇ ਉਪਾਅ",
+        getVisualVastu: "ਵਾਸਤੂ ਨਕਸ਼ੇ ਪ੍ਰਾਪਤ ਕਰੋ",
+        upgrade: "ਅਪਗ੍ਰੇਡ",
+        recommendedRemedy: "ਸਿਫਾਰਸ਼ੀ ਉਪਾਅ"
     }
 };
 
@@ -97,8 +193,18 @@ Rules:
 `;
 
 export const generateSystemInstruction = (name: string, gender: string, date: string, time: string, place: string, language: Language) => {
-  const lang = language === 'hi' ? "REPLY HINDI (Devanagari)." : "REPLY ENGLISH.";
-  return `${BASE_SYSTEM_INSTRUCTION} ${lang} User: ${name} (${gender}), Born: ${date} ${time} @ ${place}.`;
+  let langInstruction = "REPLY ENGLISH.";
+  
+  switch(language) {
+      case 'hi': langInstruction = "REPLY HINDI (Devanagari). Use fluent, natural Hindi mixed with Sanskrit astrological terms (Tatsama)."; break;
+      case 'te': langInstruction = "REPLY TELUGU. Use natural, conversational Telugu spoken in Telangana/Andhra. Mix formal Sanskrit terms for astrology."; break;
+      case 'mr': langInstruction = "REPLY MARATHI. Use natural Marathi. Be authoritative yet caring like a local Pandit."; break;
+      case 'ml': langInstruction = "REPLY MALAYALAM. Use respectful, clear Malayalam suitable for Jyothisham context."; break;
+      case 'pa': langInstruction = "REPLY PUNJABI (Gurmukhi). Use respectful, warm Punjabi."; break;
+      default: langInstruction = "REPLY ENGLISH.";
+  }
+
+  return `${BASE_SYSTEM_INSTRUCTION} ${langInstruction} User: ${name} (${gender}), Born: ${date} ${time} @ ${place}.`;
 };
 
 // Initial Suggestions

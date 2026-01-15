@@ -97,7 +97,26 @@ export default function App() {
   const [isAiThinking, setIsAiThinking] = useState(false); 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [userState, setUserState] = useState<UserState>({ id: undefined, dailyQuestionsLeft: INITIAL_DAILY_LIMIT, isPremium: false, tier: 'free', name: '', gender: '', contact: '', hasOnboarded: false, birthDate: '', birthTime: '', birthPlace: '', language: 'en' });
+  
+  // Initialize userState with stored language if available
+  const [userState, setUserState] = useState<UserState>(() => {
+      const storedLang = localStorage.getItem('astro_language') as Language;
+      return { 
+          id: undefined, 
+          dailyQuestionsLeft: INITIAL_DAILY_LIMIT, 
+          isPremium: false, 
+          tier: 'free', 
+          name: '', 
+          gender: '', 
+          contact: '', 
+          hasOnboarded: false, 
+          birthDate: '', 
+          birthTime: '', 
+          birthPlace: '', 
+          language: storedLang || 'en' 
+      };
+  });
+
   const [currentSuggestions, setCurrentSuggestions] = useState<string[]>(SUGGESTED_QUESTIONS);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS); 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -184,10 +203,12 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+      // Regenerate if view is Horoscope AND user has onboarded.
+      // Will handle language change logic inside the function.
       if (view === AppView.HOROSCOPE && userState.hasOnboarded) {
           generateFullHoroscope();
       }
-  }, [view, userState.hasOnboarded]);
+  }, [view, userState.hasOnboarded, userState.language]); // Added userState.language dep
 
   const generateFullHoroscope = async () => {
       // 1. Check if we need to generate anything based on cached data timestamps
@@ -196,7 +217,7 @@ export default function App() {
       const weekRange = getISTWeekRange(); // "Oct 27 - Nov 02"
       const thisMonthIST = getISTMonth();
       
-      const cacheKey = `horoscope_v2_${userState.id || userState.contact}`;
+      const cacheKey = `horoscope_v3_${userState.id || userState.contact}_${userState.language}`;
       
       // Fetch existing cache
       let cachedData: HoroscopeData | null = null;
@@ -205,13 +226,14 @@ export default function App() {
           if (raw) cachedData = JSON.parse(raw);
       } catch (e) { console.error("Cache parse error", e); }
 
-      // Determine what is stale
+      // Determine what is stale or language mismatch
       const isDailyStale = cachedData?.meta?.dailyDate !== todayIST;
       const isWeeklyStale = cachedData?.meta?.weekDate !== thisWeekIST;
       const isMonthlyStale = cachedData?.meta?.monthDate !== thisMonthIST;
+      const isLanguageMismatch = cachedData?.language !== userState.language;
 
-      // If nothing is stale, just set state and return
-      if (cachedData && !isDailyStale && !isWeeklyStale && !isMonthlyStale) {
+      // If nothing is stale and language matches, just set state and return
+      if (cachedData && !isDailyStale && !isWeeklyStale && !isMonthlyStale && !isLanguageMismatch) {
           setHoroscopeData(cachedData);
           return;
       }
@@ -222,15 +244,27 @@ export default function App() {
       // We will build a new object merging old valid data with new data
       const newData: HoroscopeData = {
           starSign: sign,
+          language: userState.language,
           meta: {
               dailyDate: todayIST,
               weekDate: thisWeekIST,
               monthDate: thisMonthIST
           },
-          daily: cachedData?.daily || { overview: '', simple_overview: '', dos: [], donts: [], luckyColor: '', luckyNumber: '' },
-          weekly: cachedData?.weekly || '',
-          monthly: cachedData?.monthly || ''
+          daily: (!isLanguageMismatch && cachedData?.daily) ? cachedData.daily : { overview: '', simple_overview: '', dos: [], donts: [], luckyColor: '', luckyNumber: '' },
+          weekly: (!isLanguageMismatch && cachedData?.weekly) ? cachedData.weekly : '',
+          monthly: (!isLanguageMismatch && cachedData?.monthly) ? cachedData.monthly : ''
       };
+
+      // Map language code to full name for prompt
+      const langMap: Record<string, string> = {
+          'en': 'ENGLISH',
+          'hi': 'HINDI (Devanagari)',
+          'te': 'TELUGU',
+          'mr': 'MARATHI',
+          'ml': 'MALAYALAM',
+          'pa': 'PUNJABI (Gurmukhi)'
+      };
+      const langPrompt = langMap[userState.language] || 'ENGLISH';
 
       // Retry Helper
       const generateWithRetry = async (prompt: string, schema: Schema, maxRetries = 3): Promise<any> => {
@@ -248,13 +282,14 @@ export default function App() {
       };
 
       try {
-          // --- GENERATE DAILY (if stale) ---
-          if (isDailyStale) {
+          // --- GENERATE DAILY (if stale or lang change) ---
+          if (isDailyStale || isLanguageMismatch) {
               const dailyPrompt = `
                 Generate Daily Horoscope for ${userState.name} (${sign}). 
                 Date: ${todayIST}.
                 Inputs: Born ${userState.birthDate} at ${userState.birthPlace}.
                 Requirement: UNIQUE Do's and Don'ts specific to this user's chart today. NOT generic sun sign advice.
+                Language: ${langPrompt}. Use local cultural context/idioms.
                 Output JSON:
                 {
                   "overview": "Detailed daily prediction covering career, health, love (max 60 words)",
@@ -264,7 +299,6 @@ export default function App() {
                   "luckyColor": "Color",
                   "luckyNumber": "Number"
                 }
-                Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
               `;
               const dailySchema: Schema = {
                   type: Type.OBJECT,
@@ -283,9 +317,9 @@ export default function App() {
               if (dailyRes) {
                   newData.daily = dailyRes;
               } else {
-                  // Robust fallback if AI fails after retries
+                  // Robust fallback if AI fails
                   newData.daily = {
-                      overview: `The cosmic energy for ${sign} is recalibrating today. Focus on maintaining inner balance and avoiding impulsive decisions. The moon's current phase supports introspection.`,
+                      overview: `The cosmic energy for ${sign} is recalibrating today. Focus on maintaining inner balance.`,
                       simple_overview: "Focus on inner peace today.",
                       dos: ["Meditation", "Patience"],
                       donts: ["Haste", "Conflict"],
@@ -295,14 +329,13 @@ export default function App() {
               }
           }
 
-          // --- GENERATE WEEKLY (if stale) ---
-          if (isWeeklyStale) {
+          // --- GENERATE WEEKLY (if stale or lang change) ---
+          if (isWeeklyStale || isLanguageMismatch) {
               const weeklyPrompt = `
                 Generate Weekly Horoscope for ${userState.name} (${sign}).
                 Week Range: ${weekRange}.
-                Structure: "Detailed overview of the weekly activity covering major planetary transits and their impact on the user from ${weekRange}."
-                Mention the specific dates in the text.
-                Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
+                Structure: "Detailed overview covering major planetary transits and impact from Sunday to Saturday (${weekRange})."
+                Language: ${langPrompt}. Use local dialect.
               `;
               const weeklySchema: Schema = {
                   type: Type.OBJECT,
@@ -314,17 +347,17 @@ export default function App() {
               if (weeklyRes?.content) {
                   newData.weekly = weeklyRes.content;
               } else {
-                  newData.weekly = `Weekly insights for ${sign} are currently forming in the astral plane. Expect a week of mixed energies where patience will be your greatest virtue. Key planetary movements suggest focusing on career stability and health.`;
+                  newData.weekly = `Weekly insights for ${sign} are currently forming in the astral plane.`;
               }
           }
 
-          // --- GENERATE MONTHLY (if stale) ---
-          if (isMonthlyStale) {
+          // --- GENERATE MONTHLY (if stale or lang change) ---
+          if (isMonthlyStale || isLanguageMismatch) {
               const monthlyPrompt = `
                 Generate Monthly Horoscope for ${userState.name} (${sign}).
                 Month: ${thisMonthIST}.
-                Structure: "Provide a teaser overview of the month (max 30 words). Then strictly tell them to 'Download the full Ephemeris Yearbook for detailed dates and predictions'."
-                Language: ${userState.language === 'hi' ? 'HINDI' : 'ENGLISH'}.
+                Structure: "Provide a detailed overview of the month. Mention key dates."
+                Language: ${langPrompt}. Use local dialect.
               `;
               const monthlySchema: Schema = {
                   type: Type.OBJECT,
@@ -336,7 +369,7 @@ export default function App() {
               if (monthlyRes?.content) {
                   newData.monthly = monthlyRes.content;
               } else {
-                  newData.monthly = `This month brings a transformative energy for ${sign}. While detailed transits are being calculated, prepare for shifts in personal relationships and professional opportunities.`;
+                  newData.monthly = `This month brings a transformative energy for ${sign}.`;
               }
           }
 
@@ -350,6 +383,7 @@ export default function App() {
           if (!horoscopeData) {
              setHoroscopeData({ 
                  starSign: sign, 
+                 language: userState.language,
                  meta: { dailyDate: todayIST },
                  daily: { overview: "Stars are shifting.", simple_overview: "Aligning energies.", dos: ["Meditate"], donts: ["Stress"], luckyColor: "White", luckyNumber: "7" }, 
                  weekly: "Planetary shifts observed. Please check back later.", 
@@ -509,7 +543,8 @@ export default function App() {
                   birthTime: profile.birthTime, 
                   birthPlace: profile.birthPlace, 
                   subscriptionExpiry: profile.subscriptionExpiry,
-                  gender: profile.gender // Ensure gender is also carried over
+                  gender: profile.gender,
+                  language: prev.language // Preserve persistent language if needed, or override from profile if saved there
               }));
               
               const instr = generateSystemInstruction(profile.name, profile.gender || '', profile.birthDate || '', profile.birthTime || '', profile.birthPlace || '', 'en');
@@ -773,7 +808,14 @@ export default function App() {
   };
 
   const handleLogout = () => { localStorage.removeItem('astro_token'); setHasStarted(false); setUserState({ dailyQuestionsLeft: INITIAL_DAILY_LIMIT, isPremium: false, tier: 'free', name: '', gender: '', contact: '', hasOnboarded: false, birthDate: '', birthTime: '', birthPlace: '', language: 'en' }); setMessages([]); setView(AppView.CHAT); };
-  const handleLanguageChange = (lang: Language) => { setUserState(prev => ({ ...prev, language: lang })); setHoroscopeData(undefined); };
+  
+  const handleLanguageChange = (lang: Language) => { 
+      // Save language preference to localStorage
+      localStorage.setItem('astro_language', lang);
+      setUserState(prev => ({ ...prev, language: lang })); 
+      // Force refresh of horoscope view
+      // The useEffect listening to userState.language will trigger regenerate
+  };
   
   // FIXED: Expanded credential verification to try common phone formats
   const verifyUserCredentials = async (c: string, p: string): Promise<boolean | string> => { 
@@ -899,7 +941,26 @@ export default function App() {
   const handleCallEnd = (d: number) => { setCallState(p=>({...p, isActive:false})); if(callState.messageId) setMessages(p=>p.map(m=>m.id===callState.messageId ? {...m, metadata:{...m.metadata, callStatus:'ended', durationText:`${d}s`}} : m)); };
   const handleAstrologerAction = (act: string, pl: any) => { if(act==='call') { setMessages(p=>[...p, {id:generateId(), text:'Incoming Call', sender:Sender.ASTROLOGER, type:MessageType.CALL_OFFER, metadata:{callType:pl.type}, timestamp:new Date()}]); setCallState({isActive:true, type:pl.type, partnerName:'User', partnerImage:'', channelName:pl.astroId}); } else if(act==='reply') setMessages(p=>[...p,{id:generateId(), text:pl, sender:Sender.ASTROLOGER, timestamp:new Date()}]); else if(act==='end_session') disconnectAstrologer(); };
   const openHistory = (tab: any) => { setHistoryTab(tab); setShowHistoryModal(true); setIsSidebarOpen(false); };
-  const startRecording = () => { if(window.webkitSpeechRecognition) { const r = new window.webkitSpeechRecognition(); r.onresult = (e:any) => setInput(p=>p+e.results[0][0].transcript); r.start(); setIsRecording(true); r.onend=()=>setIsRecording(false); } };
+  const startRecording = () => { 
+      if(window.webkitSpeechRecognition) { 
+          const r = new window.webkitSpeechRecognition(); 
+          
+          // Set appropriate language for speech recognition
+          switch(userState.language) {
+              case 'hi': r.lang = 'hi-IN'; break;
+              case 'te': r.lang = 'te-IN'; break;
+              case 'mr': r.lang = 'mr-IN'; break;
+              case 'ml': r.lang = 'ml-IN'; break;
+              case 'pa': r.lang = 'pa-IN'; break;
+              default: r.lang = 'en-IN'; 
+          }
+
+          r.onresult = (e:any) => setInput(p=>p+e.results[0][0].transcript); 
+          r.start(); 
+          setIsRecording(true); 
+          r.onend=()=>setIsRecording(false); 
+      } 
+  };
   const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
 
   const handleViewChange = (newView: AppView) => {
@@ -945,9 +1006,19 @@ export default function App() {
             <div className="flex items-center gap-4">
                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-gold-400 hover:text-white transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg></button>
                 <div className="flex flex-col items-start gap-1">
-                    <div className="flex bg-white/5 rounded-full p-0.5 border border-white/10 text-[10px] font-bold">
-                        <button onClick={() => handleLanguageChange('en')} className={`px-2 py-0.5 rounded-full transition-all ${userState.language === 'en' ? 'bg-gold-500 text-mystic-900' : 'text-mystic-400'}`}>EN</button>
-                        <button onClick={() => handleLanguageChange('hi')} className={`px-2 py-0.5 rounded-full transition-all ${userState.language === 'hi' ? 'bg-gold-500 text-mystic-900' : 'text-mystic-400'}`}>HI</button>
+                    <div className="flex items-center gap-2">
+                        <select 
+                            value={userState.language}
+                            onChange={(e) => handleLanguageChange(e.target.value as Language)}
+                            className="bg-white/5 border border-white/10 rounded-full text-[10px] font-bold text-mystic-200 px-2 py-0.5 outline-none focus:border-gold-500 cursor-pointer"
+                        >
+                            <option value="en">English</option>
+                            <option value="hi">हिंदी</option>
+                            <option value="te">తెలుగు</option>
+                            <option value="mr">मराठी</option>
+                            <option value="ml">മലയാളം</option>
+                            <option value="pa">ਪੰਜਾਬੀ</option>
+                        </select>
                     </div>
                     <h1 className="text-xl md:text-2xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-mystic-200 truncate">{t.appName}</h1>
                 </div>
@@ -975,7 +1046,7 @@ export default function App() {
                 {view === AppView.ASTRO_DASHBOARD ? (
                     <AstrologerDashboard activeUser={userState} messages={messages} onAction={handleAstrologerAction} earnings={astrologerEarnings} astrologers={astrologers} products={products} users={users} />
                 ) : view === AppView.HOROSCOPE ? (
-                    <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} />
+                    <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} onLanguageChange={handleLanguageChange} />
                 ) : view === AppView.CHAT ? (
                     <div className="flex flex-col h-full animate-in fade-in duration-500 relative">
                         <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pb-48 pt-4 px-4 md:px-0 scroll-smooth">

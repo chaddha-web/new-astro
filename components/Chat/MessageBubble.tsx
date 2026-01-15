@@ -218,37 +218,53 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
     
-    // --- SMART VOICE SELECTION ---
-    let preferredVoice = null;
-    
-    if (language === 'hi') {
-        preferredVoice = availableVoices.find(v => 
-            v.name.includes('Google Hindi') || 
-            v.name.includes('Lekha') || 
-            v.name.includes('Neerja') ||
-            v.lang === 'hi-IN'
-        );
-        if (!preferredVoice) {
-            preferredVoice = availableVoices.find(v => v.lang === 'en-IN' || v.name.includes('India'));
-        }
-        utterance.lang = 'hi-IN';
-    } else {
-        preferredVoice = 
-            availableVoices.find(v => v.name.includes("Google English India") && v.name.includes("Male")) ||
-            availableVoices.find(v => v.name.includes("Google UK English Male")) || 
-            availableVoices.find(v => v.name.includes("Google US English Male")) || 
-            availableVoices.find(v => v.name.includes("Daniel")) || 
-            availableVoices.find(v => v.lang.startsWith('en'));
-            
-        utterance.lang = 'en-US';
+    // --- DYNAMIC VOICE SELECTION ---
+    let preferredVoice: SpeechSynthesisVoice | undefined = undefined;
+    let langCode = 'en-US';
+
+    switch(language) {
+        case 'hi':
+            langCode = 'hi-IN';
+            preferredVoice = availableVoices.find(v => v.lang === 'hi-IN' || v.name.includes('Hindi'));
+            break;
+        case 'te':
+            langCode = 'te-IN';
+            preferredVoice = availableVoices.find(v => v.lang === 'te-IN' || v.name.includes('Telugu'));
+            break;
+        case 'mr':
+            langCode = 'mr-IN';
+            preferredVoice = availableVoices.find(v => v.lang === 'mr-IN' || v.name.includes('Marathi'));
+            break;
+        case 'ml':
+            langCode = 'ml-IN';
+            preferredVoice = availableVoices.find(v => v.lang === 'ml-IN' || v.name.includes('Malayalam'));
+            break;
+        case 'pa':
+            langCode = 'pa-IN';
+            // Punjabi voices are rare on some devices, fallback to Hindi if needed but try exact match first
+            preferredVoice = availableVoices.find(v => v.lang === 'pa-IN' || v.name.includes('Punjabi'));
+            break;
+        default: // English
+            langCode = 'en-IN';
+            preferredVoice = availableVoices.find(v => v.name.includes("Google English India")) ||
+                             availableVoices.find(v => v.lang === 'en-IN') ||
+                             availableVoices.find(v => v.lang.startsWith('en'));
+            break;
+    }
+
+    // Fallback if specific regional voice not found: Use any Google India voice or default English
+    if (!preferredVoice && language !== 'en') {
+        console.warn(`Voice for ${language} not found, falling back to English/India`);
+        preferredVoice = availableVoices.find(v => v.lang === 'en-IN') || availableVoices[0];
     }
 
     if (preferredVoice) {
         utterance.voice = preferredVoice;
     }
-
-    utterance.rate = 0.85; 
-    utterance.pitch = language === 'hi' ? 1.0 : 0.6; 
+    
+    utterance.lang = langCode;
+    utterance.rate = 0.9; 
+    utterance.pitch = 1.0;
 
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = (e) => {
@@ -415,7 +431,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
                             const lines = textToRender.split('\n');
                             
                             const warningIndex = lines.findIndex(l => 
-                                /^(?:4\.|5\.|Warning:|Caution:|Cautionary Note|The Warning|Cliffhanger|### Warning|चेतावनी|सावधान)/i.test(l.trim())
+                                /^(?:4\.|5\.|Warning:|Caution:|Cautionary Note|The Warning|Cliffhanger|### Warning|चेतावनी|सावधान|హెచ్చరిక|सावधानता|മുന്നറിയിപ്പ്|ਸਾਵਧਾਨੀ)/i.test(l.trim())
                             );
 
                             let mainContent = textToRender;

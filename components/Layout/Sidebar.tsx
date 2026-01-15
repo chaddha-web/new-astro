@@ -17,6 +17,15 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user, onNavigate, onOpenProfile, onOpenHistory, onLogout, onLanguageChange }) => {
   const displayName = formatDisplayName(user.name || 'Guest');
 
+  const languages: { code: Language, label: string }[] = [
+      { code: 'en', label: 'English' },
+      { code: 'hi', label: 'हिंदी' },
+      { code: 'te', label: 'తెలుగు' },
+      { code: 'mr', label: 'मराठी' },
+      { code: 'ml', label: 'മലയാളം' },
+      { code: 'pa', label: 'ਪੰਜਾਬੀ' }
+  ];
+
   return (
     <>
       {/* Backdrop */}
@@ -70,19 +79,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user, onNavigate, on
 
             <div className="my-4 border-t border-white/5"></div>
             <div className="px-3 mb-3 text-[10px] text-mystic-500 uppercase tracking-widest font-bold">Preferred Language</div>
-            <div className="flex gap-2 px-3">
-                <button 
-                  onClick={() => onLanguageChange('en')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${user.language === 'en' ? 'bg-gold-500 text-mystic-900 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 text-mystic-400 border-white/10 hover:bg-white/10'}`}
-                >
-                    English
-                </button>
-                <button 
-                  onClick={() => onLanguageChange('hi')}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${user.language === 'hi' ? 'bg-gold-500 text-mystic-900 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 text-mystic-400 border-white/10 hover:bg-white/10'}`}
-                >
-                    हिन्दी
-                </button>
+            <div className="grid grid-cols-2 gap-2 px-3">
+                {languages.map(lang => (
+                    <button 
+                        key={lang.code}
+                        onClick={() => onLanguageChange(lang.code)}
+                        className={`py-2 rounded-xl text-xs font-bold border transition-all ${user.language === lang.code ? 'bg-gold-500 text-mystic-900 border-gold-500 shadow-lg shadow-gold-500/20' : 'bg-white/5 text-mystic-400 border-white/10 hover:bg-white/10'}`}
+                    >
+                        {lang.label}
+                    </button>
+                ))}
             </div>
         </nav>
 
@@ -94,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user, onNavigate, on
             >
                 <span>🚪</span> Logout
             </button>
-            <p className="text-center text-[10px] text-mystic-600 mt-4 font-mono">ASTRO-VASTU v1.2</p>
+            <p className="text-center text-[10px] text-mystic-600 mt-4 font-mono">ASTRO-VASTU v1.3</p>
         </div>
       </div>
     </>

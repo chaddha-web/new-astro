@@ -16,7 +16,7 @@ export enum MessageType {
   VIDEO = 'video'
 }
 
-export type Language = 'en' | 'hi';
+export type Language = 'en' | 'hi' | 'te' | 'mr' | 'ml' | 'pa';
 
 export interface Product {
   id: string;
@@ -164,6 +164,7 @@ export enum AppView {
 
 export interface HoroscopeData {
   starSign: string;
+  language?: Language; // Track language
   meta?: {
     dailyDate?: string;
     weekDate?: string;
