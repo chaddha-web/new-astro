@@ -93,6 +93,7 @@ export interface Transaction {
   date: string;
   details: string;
   relatedEntityId?: string; // ID of Astrologer or Product for attribution
+  paymentId?: string; // Razorpay Payment ID
 }
 
 export interface CommunicationLog {

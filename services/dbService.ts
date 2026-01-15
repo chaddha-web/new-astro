@@ -509,7 +509,8 @@ export const fetchTransactions = async (): Promise<Transaction[]> => {
           date: t.created_at ? new Date(t.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], 
           details: t.details,
           relatedEntityId: t.related_entity_id,
-          _created_at: t.created_at 
+          _created_at: t.created_at,
+          paymentId: t.details.includes('Ref: ') ? t.details.split('Ref: ')[1].replace(']', '') : undefined
       }));
 
       console.log("⬇️ [DB Success] fetchTransactions count:", mapped.length);
@@ -527,13 +528,16 @@ export const saveTransaction = async (tx: Transaction) => {
   console.log("⬆️ [DB Sending] saveTransaction:", tx.id);
   if (!supabase) return;
   try { 
+      // Append Payment ID to details if present, to ensure persistence even without dedicated column
+      const detailsWithRef = tx.paymentId ? `${tx.details} [Ref: ${tx.paymentId}]` : tx.details;
+
       const payload: any = { 
           id: tx.id, 
           user_id: tx.userId, 
           user_name: tx.userName, 
           amount: tx.amount, 
           type: tx.type, 
-          details: tx.details, 
+          details: detailsWithRef, 
           status: tx.status, 
           related_entity_id: tx.relatedEntityId || null,
           created_at: new Date().toISOString() 

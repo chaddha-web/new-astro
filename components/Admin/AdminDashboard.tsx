@@ -650,7 +650,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </div>
                         </div>
 
-                        {/* Existing Transaction Ledger */}
+                        {/* Updated Transaction Ledger */}
                         <div>
                             <h3 className="text-xl font-bold mb-4 text-white">All Transactions</h3>
                             <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl max-h-96 overflow-y-auto">
@@ -660,6 +660,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                             <th className="px-6 py-4">Date</th>
                                             <th className="px-6 py-4">Type</th>
                                             <th className="px-6 py-4">User</th>
+                                            <th className="px-6 py-4">Payment ID</th>
                                             <th className="px-6 py-4 text-right">Amount</th>
                                         </tr>
                                     </thead>
@@ -675,6 +676,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                     }`}>{t.type}</span>
                                                 </td>
                                                 <td className="px-6 py-4 text-white">{t.userName}</td>
+                                                <td className="px-6 py-4 font-mono text-xs text-mystic-400 break-all max-w-[150px]">
+                                                    {t.paymentId || (t.details.match(/Ref: ([^\]]+)/)?.[1] || '-')}
+                                                </td>
                                                 <td className="px-6 py-4 text-right font-mono text-gold-400 font-bold">₹{t.amount}</td>
                                             </tr>
                                         ))}

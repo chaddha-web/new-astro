@@ -139,7 +139,7 @@ export default function App() {
   const [shippingDetails, setShippingDetails] = useState({ address: '', city: '', pincode: '', phone: '' });
   const [selectedProductForPurchase, setSelectedProductForPurchase] = useState<Product | null>(null);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
-  const [pendingPayment, setPendingPayment] = useState<{ amount: number; description: string; onSuccess: () => void; contact?: string; } | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<{ amount: number; description: string; onSuccess: (paymentId?: string) => void; contact?: string; } | null>(null);
   const [missingContactInfo, setMissingContactInfo] = useState('');
   const [callState, setCallState] = useState<CallState>({ isActive: false, type: 'voice', partnerName: '', partnerImage: '', channelName: '' });
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -152,6 +152,10 @@ export default function App() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const currentLang = userState.language || 'en';
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en; 
+
+  // --- Post-Payment Language Selection ---
+  const [showLanguageSelectionModal, setShowLanguageSelectionModal] = useState(false);
+  const [pendingOnboardingData, setPendingOnboardingData] = useState<{user: UserState, cost: number, desc: string} | null>(null);
 
   const refreshData = async () => {
         setIsGlobalLoading(true);
@@ -334,8 +338,9 @@ export default function App() {
               const weeklyPrompt = `
                 Generate Weekly Horoscope for ${userState.name} (${sign}).
                 Week Range: ${weekRange}.
-                Structure: "Detailed overview covering major planetary transits and impact from Sunday to Saturday (${weekRange})."
-                Language: ${langPrompt}. Use local dialect.
+                Task: Create a COMPREHENSIVE, DETAILED Weekly Forecast suitable for printing as a full page report.
+                Structure: "Introduction to planetary movements. Deep dive into Career, Health, and Relationships for ${weekRange}. Specific remedies for the week."
+                Language: ${langPrompt}. Use local dialect. Minimum 300 words.
               `;
               const weeklySchema: Schema = {
                   type: Type.OBJECT,
@@ -356,8 +361,9 @@ export default function App() {
               const monthlyPrompt = `
                 Generate Monthly Horoscope for ${userState.name} (${sign}).
                 Month: ${thisMonthIST}.
-                Structure: "Provide a detailed overview of the month. Mention key dates."
-                Language: ${langPrompt}. Use local dialect.
+                Task: Create an EXHAUSTIVE Monthly Yearbook Report suitable for PDF download.
+                Structure: "Overview of the month. Key Transits (Sun, Mars, Venus). Week-by-week breakdown. Closing advice."
+                Language: ${langPrompt}. Use local dialect. Minimum 500 words.
               `;
               const monthlySchema: Schema = {
                   type: Type.OBJECT,
@@ -579,7 +585,7 @@ export default function App() {
   }, [hasStarted]);
 
   // Subscription Logic: Starts today, Ends (Today + 1 Month) - 1 Day
-  const handleSubscriptionSuccess = () => {
+  const handleSubscriptionSuccess = (paymentId?: string) => {
       const now = new Date();
       const expiry = new Date(now);
       expiry.setMonth(expiry.getMonth() + 1);
@@ -597,12 +603,22 @@ export default function App() {
           return updated;
       });
       setShowPremiumModal(false);
-      addTransaction(299, 'Subscription', `Premium until ${expiry.toLocaleDateString()}`);
+      
+      const tx:Transaction={ 
+          id: generateReferenceId('Subscription', `Premium until ${expiry.toLocaleDateString()}`), 
+          userId: userState.id || userState.contact || 'u', 
+          userName: userState.name || 'Guest', 
+          amount:299, type:'Subscription', status:'Success', date:new Date().toISOString().split('T')[0], details:`Premium until ${expiry.toLocaleDateString()}`,
+          relatedEntityId: userState.connectedAstrologerId,
+          paymentId: paymentId 
+      }; 
+      setTransactions(p=>[tx,...p]); saveTransaction(tx);
+
       setMessages(prev => [...prev, { id: generateId(), text: `Subscription Active! Valid until ${expiry.toLocaleDateString()}.`, sender: Sender.SYSTEM, timestamp: new Date() }]);
   };
 
   const handleMember21Purchase = () => {
-      initiatePayment(21, "Member 21 Initiation", () => {
+      initiatePayment(21, "Member 21 Initiation", (paymentId?: string) => {
           const now = new Date();
           const expiry = new Date(now);
           expiry.setFullYear(expiry.getFullYear() + 3); // 3 Years
@@ -619,7 +635,17 @@ export default function App() {
               return updated;
           });
           setShowPremiumModal(false);
-          addTransaction(21, 'Subscription', `Member 21 (3 Years)`);
+          
+          const tx:Transaction={ 
+              id: generateReferenceId('Subscription', 'Member 21 (3 Years)'), 
+              userId: userState.id || userState.contact || 'u', 
+              userName: userState.name || 'Guest', 
+              amount:21, type:'Subscription', status:'Success', date:new Date().toISOString().split('T')[0], details:`Member 21 (3 Years)`,
+              relatedEntityId: userState.connectedAstrologerId,
+              paymentId: paymentId
+          }; 
+          setTransactions(p=>[tx,...p]); saveTransaction(tx);
+
           setMessages(prev => [...prev, { 
               id: generateId(), 
               text: `Welcome to the 21 Club! Insights unlocked for 3 years. Use top-ups for chat.`, 
@@ -630,7 +656,7 @@ export default function App() {
   };
 
   const handleTopup = (cost: number, quantity: number) => {
-      initiatePayment(cost, `${quantity} Questions Top-up`, () => {
+      initiatePayment(cost, `${quantity} Questions Top-up`, (paymentId?: string) => {
           setUserState(prev => {
               const updated = {
                   ...prev,
@@ -639,7 +665,17 @@ export default function App() {
               saveUserProfile(updated);
               return updated;
           });
-          addTransaction(cost, 'Product', `${quantity} Q Top-up`);
+          
+          const tx:Transaction={ 
+              id: generateReferenceId('Product', `${quantity} Q Top-up`), 
+              userId: userState.id || userState.contact || 'u', 
+              userName: userState.name || 'Guest', 
+              amount:cost, type:'Product', status:'Success', date:new Date().toISOString().split('T')[0], details:`${quantity} Q Top-up`,
+              relatedEntityId: userState.connectedAstrologerId,
+              paymentId: paymentId
+          }; 
+          setTransactions(p=>[tx,...p]); saveTransaction(tx);
+
           setShowPremiumModal(false);
           setMessages(prev => [...prev, { 
               id: generateId(), 
@@ -675,7 +711,7 @@ export default function App() {
           birthTime: data.time, 
           birthPlace: data.place, 
           isPremium: false, 
-          tier: 'free',
+          tier: 'free', 
           dailyQuestionsLeft: INITIAL_DAILY_LIMIT, 
           hasOnboarded: true,
           language: userState.language || 'en',
@@ -697,63 +733,6 @@ export default function App() {
           return;
       }
 
-      // 3. Define Finalize Logic (Chat Generation)
-      const finalizeOnboarding = async (finalUser: UserState) => {
-          setLoadingText("Aligning Stars...");
-          try {
-              const instr = generateSystemInstruction(uniqueName, data.gender, data.date, data.time, data.place, finalUser.language);
-              await initializeChat(instr);
-              
-              const cacheKey = `${data.name.trim().toLowerCase()}_${data.date}_${data.time}_${data.place.trim().toLowerCase()}`.replace(/\s+/g, '_');
-              let txt = await fetchCachedReading(cacheKey);
-
-              if (!txt) {
-                  let prompt = "Initial Overview: Name, Challenges, Vastu Hint, Warning. Deep Dive: Full Vastu.";
-                  const treatAsPremium = finalUser.isPremium || finalUser.tier === 'member21';
-                  
-                  if (treatAsPremium) {
-                      prompt = `
-                      I AM A PREMIUM SEEKER. GENERATE A DIVINE, STRUCTURED ASTROLOGICAL DECREE.
-                      STRICTLY FOLLOW THIS STRUCTURE:
-                      1. **Divine Greeting**: Welcoming the soul (Higher Being tone).
-                      2. **Spiritual Significance of Name**: Meaning of ${uniqueName}.
-                      3. **Cosmic Blueprint (Birth Chart)**: Lagna, Moon Sign, Key Yogas (Raj Yogas/Dhan Yogas).
-                      4. **Time's Current Flow**: Current Dasha/Period analysis.
-                      5. **Immediate Remedy**: One powerful, actionable ritual.
-                      6. **Vastu Architecture**: ASCII Map with specific defects.
-                      7. **Gemstones & Mantras**: Specific recommendations (mention 'Coral', 'Sapphire', or 'Rudraksha' if applicable to trigger shop).
-                      8. **Closing Blessing**.
-                      Deep Dive: Detailed planetary nuances.
-                      `;
-                  }
-                  
-                  txt = await sendMessageToGemini(prompt, treatAsPremium);
-                  if (txt && txt.length > 50) await saveCachedReading(cacheKey, txt);
-              }
-
-              const lowerResponse = txt?.toLowerCase() || "";
-              const suggestedProducts = products.filter(p => {
-                  const nameWords = p.name.toLowerCase().split(' ');
-                  const cat = p.category.toLowerCase();
-                  return lowerResponse.includes(cat) || nameWords.some(w => w.length > 4 && lowerResponse.includes(w));
-              }).slice(0, 1);
-              
-              const hasDeepDive = txt?.includes("Deep Dive:");
-              const shouldLock = hasDeepDive && !finalUser.isPremium && finalUser.tier !== 'member21';
-
-              setMessages([{
-                  id: generateId(), 
-                  text: txt || "Welcome.", 
-                  sender: Sender.AI, 
-                  timestamp: new Date(), 
-                  isLocked: shouldLock, 
-                  metadata: shouldLock ? { status: 'locked' } : undefined,
-                  suggestedProducts: suggestedProducts.length > 0 ? suggestedProducts : undefined
-              }]);
-          } catch(e) { console.error(e); } 
-          finally { setIsGlobalLoading(false); }
-      };
-
       // 4. Handle Payment Flow (Post-User Creation)
       if (selectedTier === 'premium' || selectedTier === 'member21') {
           const cost = selectedTier === 'premium' ? 299 : 21;
@@ -761,60 +740,170 @@ export default function App() {
           
           setIsGlobalLoading(false); // Hide loader to show payment modal
 
-          initiatePayment(cost, desc, async () => {
-              setIsGlobalLoading(true);
-              setLoadingText("Upgrading Cosmic Energy...");
+          initiatePayment(cost, desc, (paymentId?: string) => {
+              // INSTEAD OF FINALIZING, SHOW LANGUAGE SELECTOR
+              setPendingOnboardingData({ user: baseUser, cost, desc });
+              setShowLanguageSelectionModal(true);
               
-              let dailyLimit = INITIAL_DAILY_LIMIT;
-              let expiryDate: Date | undefined = undefined;
-              let isPremium = false;
-              
-              if (selectedTier === 'premium') {
-                  dailyLimit = PREMIUM_DAILY_LIMIT;
-                  const now = new Date();
-                  const expiry = new Date(now);
-                  expiry.setMonth(expiry.getMonth() + 1);
-                  expiry.setDate(expiry.getDate() - 1);
-                  expiryDate = expiry;
-                  isPremium = true;
-              } else if (selectedTier === 'member21') {
-                  dailyLimit = 0; 
-                  const now = new Date();
-                  const expiry = new Date(now);
-                  expiry.setFullYear(expiry.getFullYear() + 3);
-                  expiryDate = expiry;
-                  isPremium = false;
-              }
-
-              const upgradedUser: UserState = {
-                  ...baseUser,
-                  isPremium,
-                  tier: selectedTier,
-                  dailyQuestionsLeft: dailyLimit,
-                  subscriptionExpiry: expiryDate
-              };
-
-              // Update User with Premium/Member Status
-              await saveUserProfile(upgradedUser);
-              setUserState(upgradedUser);
-
-              addTransaction(cost, 'Subscription', desc, upgradedUser);
-              await finalizeOnboarding(upgradedUser);
+              // We'll persist the transaction and user update AFTER language selection
+              // But we can log the payment ID now just in case
+              console.log("Payment Successful, ID:", paymentId);
+              // Attach payment ID to the pending data to use later
+              (baseUser as any)._tempPaymentId = paymentId; 
           }, data.contact);
       } else {
           // Free Tier - Proceed directly
-          await finalizeOnboarding(baseUser);
+          finalizeOnboarding(baseUser);
       }
+  };
+
+  const handlePostPaymentLanguageSelect = async (lang: Language) => {
+      setShowLanguageSelectionModal(false);
+      setIsGlobalLoading(true);
+      setLoadingText("Aligning Stars...");
+
+      if (!pendingOnboardingData) return;
+
+      const { user, cost, desc } = pendingOnboardingData;
+      const paymentId = (user as any)._tempPaymentId;
+
+      // Determine new tier stats
+      let dailyLimit = INITIAL_DAILY_LIMIT;
+      let expiryDate: Date | undefined = undefined;
+      let isPremium = false;
+      let tier = user.tier || 'free'; // Default from base, but will upgrade
+
+      if (desc.includes("Premium")) {
+          dailyLimit = PREMIUM_DAILY_LIMIT;
+          const now = new Date();
+          const expiry = new Date(now);
+          expiry.setMonth(expiry.getMonth() + 1);
+          expiry.setDate(expiry.getDate() - 1);
+          expiryDate = expiry;
+          isPremium = true;
+          tier = 'premium';
+      } else if (desc.includes("Member 21")) {
+          dailyLimit = 0; 
+          const now = new Date();
+          const expiry = new Date(now);
+          expiry.setFullYear(expiry.getFullYear() + 3);
+          expiryDate = expiry;
+          isPremium = false;
+          tier = 'member21';
+      }
+
+      const upgradedUser: UserState = {
+          ...user,
+          isPremium,
+          tier: tier as any,
+          dailyQuestionsLeft: dailyLimit,
+          subscriptionExpiry: expiryDate,
+          language: lang // UPDATE LANGUAGE HERE
+      };
+
+      // Update User with Premium/Member Status & Language
+      await saveUserProfile(upgradedUser);
+      setUserState(upgradedUser);
+      // Persist lang choice locally too
+      localStorage.setItem('astro_language', lang);
+
+      // Log Transaction
+      const tx:Transaction={ 
+          id: generateReferenceId('Subscription', desc), 
+          userId: upgradedUser.id || upgradedUser.contact || 'u', 
+          userName: upgradedUser.name || 'Guest', 
+          amount:cost, type:'Subscription', status:'Success', date:new Date().toISOString().split('T')[0], details:desc,
+          relatedEntityId: upgradedUser.connectedAstrologerId,
+          paymentId: paymentId
+      }; 
+      setTransactions(p=>[tx,...p]); saveTransaction(tx);
+
+      // Now finalize with correct language
+      await finalizeOnboarding(upgradedUser);
+  };
+
+  const finalizeOnboarding = async (finalUser: UserState) => {
+      setLoadingText("Aligning Stars...");
+      try {
+          const instr = generateSystemInstruction(finalUser.name, finalUser.gender || '', finalUser.birthDate || '', finalUser.birthTime || '', finalUser.birthPlace || '', finalUser.language);
+          await initializeChat(instr);
+          
+          const cacheKey = `${finalUser.name.trim().toLowerCase()}_${finalUser.birthDate}_${finalUser.birthTime}_${finalUser.birthPlace?.trim().toLowerCase()}_${finalUser.language}`.replace(/\s+/g, '_');
+          let txt = await fetchCachedReading(cacheKey);
+
+          if (!txt) {
+              const treatAsPremium = finalUser.isPremium || finalUser.tier === 'member21';
+              const langCode = finalUser.language || 'en';
+              const langName = {
+                  'en': 'ENGLISH', 'hi': 'HINDI', 'te': 'TELUGU', 'mr': 'MARATHI', 'ml': 'MALAYALAM', 'pa': 'PUNJABI'
+              }[langCode] || 'ENGLISH';
+
+              let prompt = `Initial Overview: Name, Challenges, Vastu Hint, Warning. Deep Dive: Full Vastu. OUTPUT LANGUAGE: ${langName}`;
+              
+              if (treatAsPremium) {
+                  prompt = `
+                  I AM A PREMIUM SEEKER. GENERATE A DIVINE, STRUCTURED ASTROLOGICAL DECREE.
+                  OUTPUT LANGUAGE: ${langName}.
+                  STRICTLY FOLLOW THIS STRUCTURE:
+                  1. **Divine Greeting**: Welcoming the soul (Higher Being tone).
+                  2. **Spiritual Significance of Name**: Meaning of ${finalUser.name}.
+                  3. **Cosmic Blueprint (Birth Chart)**: Lagna, Moon Sign, Key Yogas (Raj Yogas/Dhan Yogas).
+                  4. **Time's Current Flow**: Current Dasha/Period analysis.
+                  5. **Immediate Remedy**: One powerful, actionable ritual.
+                  6. **Vastu Architecture**: ASCII Map with specific defects.
+                  7. **Gemstones & Mantras**: Specific recommendations (mention 'Coral', 'Sapphire', or 'Rudraksha' if applicable to trigger shop).
+                  8. **Closing Blessing**.
+                  Deep Dive: Detailed planetary nuances.
+                  `;
+              }
+              
+              txt = await sendMessageToGemini(prompt, treatAsPremium);
+              if (txt && txt.length > 50) await saveCachedReading(cacheKey, txt);
+          }
+
+          const lowerResponse = txt?.toLowerCase() || "";
+          const suggestedProducts = products.filter(p => {
+              const nameWords = p.name.toLowerCase().split(' ');
+              const cat = p.category.toLowerCase();
+              return lowerResponse.includes(cat) || nameWords.some(w => w.length > 4 && lowerResponse.includes(w));
+          }).slice(0, 1);
+          
+          const hasDeepDive = txt?.includes("Deep Dive:");
+          const shouldLock = hasDeepDive && !finalUser.isPremium && finalUser.tier !== 'member21';
+
+          setMessages([{
+              id: generateId(), 
+              text: txt || "Welcome.", 
+              sender: Sender.AI, 
+              timestamp: new Date(), 
+              isLocked: shouldLock, 
+              metadata: shouldLock ? { status: 'locked' } : undefined,
+              suggestedProducts: suggestedProducts.length > 0 ? suggestedProducts : undefined
+          }]);
+      } catch(e) { console.error(e); } 
+      finally { setIsGlobalLoading(false); }
   };
 
   const handleLogout = () => { localStorage.removeItem('astro_token'); setHasStarted(false); setUserState({ dailyQuestionsLeft: INITIAL_DAILY_LIMIT, isPremium: false, tier: 'free', name: '', gender: '', contact: '', hasOnboarded: false, birthDate: '', birthTime: '', birthPlace: '', language: 'en' }); setMessages([]); setView(AppView.CHAT); };
   
-  const handleLanguageChange = (lang: Language) => { 
+  const handleLanguageChange = async (lang: Language) => { 
       // Save language preference to localStorage
       localStorage.setItem('astro_language', lang);
       setUserState(prev => ({ ...prev, language: lang })); 
-      // Force refresh of horoscope view
-      // The useEffect listening to userState.language will trigger regenerate
+      
+      // RE-INITIALIZE CHAT with new language instruction
+      // This ensures subsequent messages (TTS and Text) use the new language
+      if (userState.hasOnboarded) {
+          const instr = generateSystemInstruction(
+              userState.name, 
+              userState.gender || '', 
+              userState.birthDate || '', 
+              userState.birthTime || '', 
+              userState.birthPlace || '', 
+              lang
+          );
+          await initializeChat(instr);
+      }
   };
   
   // FIXED: Expanded credential verification to try common phone formats
@@ -836,7 +925,7 @@ export default function App() {
       return false; 
   };
 
-  const initiatePayment = (amount: number, desc: string, success: () => void, contact?: string) => { 
+  const initiatePayment = (amount: number, desc: string, success: (paymentId?: string) => void, contact?: string) => { 
       setPendingPayment({ amount, description: desc, onSuccess: success, contact }); 
       setMissingContactInfo(''); 
       setShowPaymentConfirmation(true); 
@@ -846,14 +935,15 @@ export default function App() {
   const updateEarnings = (id: string, type: keyof Earnings, amt: number) => setAstrologerEarnings(p => ({...p, [id]: {...(p[id]||{chats:0,products:0,tips:0,withdrawn:0}), [type]: (p[id]?.[type]||0)+amt}}));
   
   // UPDATED: Now supports relatedEntityId for proper attribution
-  const addTransaction = (amt: number, type: 'Product' | 'Subscription' | 'Dakshina' | 'Consultation', det: string, userOverride?: UserState) => { 
+  const addTransaction = (amt: number, type: 'Product' | 'Subscription' | 'Dakshina' | 'Consultation', det: string, userOverride?: UserState, paymentId?: string) => { 
       const currentUser = userOverride || userState;
       const tx:Transaction={ 
           id: generateReferenceId(type, det), 
           userId: currentUser.id || currentUser.contact || 'u', 
           userName: currentUser.name || 'Guest', 
           amount:amt, type, status:'Success', date:new Date().toISOString().split('T')[0], details:det,
-          relatedEntityId: currentUser.connectedAstrologerId // Attributed to connected astro if exists
+          relatedEntityId: currentUser.connectedAstrologerId, // Attributed to connected astro if exists
+          paymentId: paymentId
       }; 
       setTransactions(p=>[tx,...p]); saveTransaction(tx); 
   };
@@ -876,7 +966,11 @@ export default function App() {
               currency: "INR", 
               name: "Astro21", 
               description: pendingPayment.description, 
-              handler: () => { pendingPayment.onSuccess(); setShowPaymentConfirmation(false); }, 
+              handler: (response: any) => { 
+                  // Pass Razorpay Payment ID to success handler
+                  pendingPayment.onSuccess(response.razorpay_payment_id); 
+                  setShowPaymentConfirmation(false); 
+              }, 
               prefill: prefillData,
               theme: { color: "#DAA520" }
           });
@@ -901,15 +995,15 @@ export default function App() {
   };
 
   const initiateProductPurchase = (p: Product) => { setSelectedProductForPurchase(p); setShippingDetails({ address:'', city:'', pincode:'', phone:'' }); setShowAddressModal(true); };
-  const confirmPurchaseWithAddress = () => { if(!selectedProductForPurchase) return; initiatePayment(selectedProductForPurchase.price, selectedProductForPurchase.name, () => { addTransaction(selectedProductForPurchase!.price, 'Product', selectedProductForPurchase!.name); setMessages(p=>[...p, {id:generateId(), text:`Purchased ${selectedProductForPurchase!.name}`, sender:Sender.SYSTEM, timestamp:new Date()}]); setShowAddressModal(false); }); };
+  const confirmPurchaseWithAddress = () => { if(!selectedProductForPurchase) return; initiatePayment(selectedProductForPurchase.price, selectedProductForPurchase.name, (pid) => { addTransaction(selectedProductForPurchase!.price, 'Product', selectedProductForPurchase!.name, undefined, pid); setMessages(p=>[...p, {id:generateId(), text:`Purchased ${selectedProductForPurchase!.name}`, sender:Sender.SYSTEM, timestamp:new Date()}]); setShowAddressModal(false); }); };
   const handleUnlockMessage = (id: string) => setMessages(p => p.map(m => m.id===id ? {...m, isLocked:false} : m));
   
   // UPDATED: Ensure updateEarnings is called but also rely on transaction attribution
-  const handleGuruDakshina = (amt: number) => initiatePayment(amt, 'Dakshina', () => { 
+  const handleGuruDakshina = (amt: number) => initiatePayment(amt, 'Dakshina', (pid) => { 
       // Update local state for immediate feedback
       if(userState.connectedAstrologerId) updateEarnings(userState.connectedAstrologerId, 'tips', amt*0.8); 
       // Transaction will carry connectedAstrologerId via addTransaction
-      addTransaction(amt, 'Dakshina', 'Tip'); 
+      addTransaction(amt, 'Dakshina', 'Tip', undefined, pid); 
       setShowTipModal(false); 
   });
 
@@ -920,7 +1014,7 @@ export default function App() {
           return; 
       } 
       const amount = a.pricePerMin * 10;
-      initiatePayment(amount, 'Session', async () => { 
+      initiatePayment(amount, 'Session', async (pid) => { 
           // 1. Update Local State
           const updatedUser = {...userState, connectedAstrologerId:a.id};
           setUserState(updatedUser); 
@@ -932,7 +1026,7 @@ export default function App() {
           await saveUserProfile(updatedUser);
 
           // 3. Log Transaction
-          addTransaction(amount, 'Consultation', `Session with ${a.name}`, updatedUser);
+          addTransaction(amount, 'Consultation', `Session with ${a.name}`, updatedUser, pid);
           updateEarnings(a.id, 'chats', amount * 0.9); 
       }); 
   };
@@ -1095,6 +1189,36 @@ export default function App() {
         )}
       </main>
 
+      {/* LANGUAGE SELECTOR MODAL POST-PAYMENT */}
+      {showLanguageSelectionModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
+              <div className="bg-mystic-900 border border-gold-500/50 p-8 rounded-3xl w-full max-w-md text-center shadow-[0_0_50px_rgba(234,179,8,0.2)]">
+                  <div className="text-4xl mb-4 animate-bounce">🌐</div>
+                  <h3 className="text-2xl font-serif text-white mb-2">Choose Your Language</h3>
+                  <p className="text-mystic-300 text-sm mb-6">Receive your premium insights in your preferred language.</p>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                      {[
+                          { code: 'en', label: 'English' },
+                          { code: 'hi', label: 'हिंदी (Hindi)' },
+                          { code: 'te', label: 'తెలుగు (Telugu)' },
+                          { code: 'mr', label: 'मराठी (Marathi)' },
+                          { code: 'ml', label: 'മലയാളം (Malayalam)' },
+                          { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' }
+                      ].map(lang => (
+                          <button 
+                              key={lang.code}
+                              onClick={() => handlePostPaymentLanguageSelect(lang.code as Language)}
+                              className="py-3 px-4 rounded-xl border border-white/10 hover:border-gold-500 hover:bg-gold-500/10 text-white font-bold transition-all"
+                          >
+                              {lang.label}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      )}
+
       {showPaymentConfirmation && pendingPayment && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90">
             <div className="bg-mystic-800 p-8 rounded-3xl text-center w-full max-w-sm">
@@ -1134,6 +1258,7 @@ export default function App() {
                         Pay Now
                     </button>
                 </div>
+                <p className="mt-4 text-[9px] text-mystic-600">Note: Ensure "Auto Capture" is enabled in Razorpay settings to prevent auto-refunds.</p>
             </div>
         </div>
       )}
@@ -1210,7 +1335,7 @@ export default function App() {
                       <p className="text-[10px] text-mystic-500 uppercase tracking-widest font-bold mb-3 text-center">Membership Options</p>
                       
                       {/* Premium */}
-                      <button onClick={handleSubscriptionSuccess} className="w-full bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-mystic-950 font-bold py-4 rounded-xl mb-3 shadow-lg transition-transform active:scale-[0.98]">
+                      <button onClick={() => handleSubscriptionSuccess()} className="w-full bg-gradient-to-r from-gold-600 to-gold-400 hover:from-gold-500 hover:to-gold-300 text-mystic-950 font-bold py-4 rounded-xl mb-3 shadow-lg transition-transform active:scale-[0.98]">
                           Subscribe Premium (₹299/mo)
                           <span className="block text-[9px] font-medium opacity-80 mt-1">10 Qs/Day + All Features</span>
                       </button>
