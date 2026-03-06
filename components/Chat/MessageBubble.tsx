@@ -22,7 +22,7 @@ const FormattedText: React.FC<{ text: string; isDrastic?: boolean }> = ({ text, 
   const lines = text.split('\n');
   
   const renderLines = () => {
-    const output = [];
+    const output: JSX.Element[] = [];
     let asciiBuffer: string[] = [];
 
     const flushAscii = (keyPrefix: string) => {

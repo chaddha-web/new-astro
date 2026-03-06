@@ -743,6 +743,7 @@ export const saveUserProfile = async (user: UserState, password?: string, messag
       if (messages && messages.length > 0) payload.chat_history = compressAndEncrypt(messages);
 
       const performUpsert = async (data: any, conflict: string) => {
+          if (!supabase) return;
           const { error } = await supabase.from('profiles').upsert(data, { onConflict: conflict });
           if (error) {
               // Postgres error 42703: column does not exist

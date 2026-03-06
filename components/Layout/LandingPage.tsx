@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import StarBackground from './StarBackground';
-import { sendAuthOtp, verifyAuthOtp, resetUserPassword } from '../../services/dbService';
-import PrivacyPolicy from './PrivacyPolicy';
-import Terms from './Terms';
 
 interface LandingPageProps {
   onSeekerEnter: () => void;
-  onSeekerLogin: (verifiedContact: string) => void;
-  onVerifyCredentials: (contact: string, password: string) => Promise<boolean | string>;
   onGuruEnter: () => void;
-  onAdminEnter: () => void;
 }
 
 type LangCode = 'en' | 'hi' | 'ml' | 'pa' | 'mr';
@@ -127,24 +122,11 @@ const TRANSLATIONS: Record<LangCode, any> = {
   }
 };
 
-const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin, onVerifyCredentials, onGuruEnter, onAdminEnter }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onGuruEnter }) => {
+  const navigate = useNavigate();
   const [lang, setLang] = useState<LangCode>('en');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const [pageView, setPageView] = useState<'home' | 'privacy' | 'terms'>('home');
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
-
-  // Login State Machine
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginStep, setLoginStep] = useState<'credentials' | 'otp' | 'forgot_request' | 'forgot_otp' | 'forgot_new_password'>('credentials');
-  
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [adminPin, setAdminPin] = useState('');
 
   // Social Proof Animation
   const [seekersCount, setSeekersCount] = useState(0);
@@ -285,22 +267,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
       }
   };
 
-  const closeLogin = () => {
-      setShowLoginModal(false);
-      setIsAdminMode(false);
-      setPhoneNumber('');
-      setPassword('');
-      setConfirmPassword('');
-      setAdminPin('');
-      setOtp('');
-      setLoginStep('credentials');
-      setErrorMsg('');
-  };
-
   // Sub-pages rendering
-  if (pageView === 'privacy') return <><StarBackground /><PrivacyPolicy onBack={() => setPageView('home')} /></>;
-  if (pageView === 'terms') return <><StarBackground /><Terms onBack={() => setPageView('home')} /></>;
-
   return (
     <div className="relative min-h-screen flex flex-col bg-mystic-900 text-white font-sans selection:bg-gold-500/30 overflow-x-hidden">
       <StarBackground />
@@ -353,7 +320,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 )}
             </div>
             <button 
-                onClick={() => setShowLoginModal(true)}
+                onClick={() => navigate('/login')}
                 className="px-4 py-2 rounded-full border border-white/20 text-sm font-bold text-white hover:bg-white/10 transition-colors"
             >
                 Login
@@ -395,7 +362,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         </button>
 
         <button 
-            onClick={() => setShowLoginModal(true)}
+            onClick={() => navigate('/login')}
             className="text-mystic-400 hover:text-white underline transition-colors mb-12"
         >
             {t.loginText}
@@ -648,8 +615,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             <div>
                 <h4 className="text-white font-bold mb-4">Legal</h4>
                 <ul className="space-y-2 text-sm text-mystic-400">
-                    <li><button onClick={() => { setPageView('privacy'); window.scrollTo(0, 0); }} className="hover:text-gold-400 transition-colors">Privacy Policy</button></li>
-                    <li><button onClick={() => { setPageView('terms'); window.scrollTo(0, 0); }} className="hover:text-gold-400 transition-colors">Terms & Conditions</button></li>
+                    <li><button onClick={() => { navigate('/privacy'); window.scrollTo(0, 0); }} className="hover:text-gold-400 transition-colors">Privacy Policy</button></li>
+                    <li><button onClick={() => { navigate('/terms'); window.scrollTo(0, 0); }} className="hover:text-gold-400 transition-colors">Terms & Conditions</button></li>
                     <li><button className="hover:text-gold-400 transition-colors">Refund Policy</button></li>
                     <li><button className="hover:text-gold-400 transition-colors">Contact</button></li>
                 </ul>
@@ -659,107 +626,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             © 2024 Astro21. All rights reserved. {t.footerTagline}
         </div>
       </footer>
-
-      {/* Login Modal */}
-      {showLoginModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-              <div className="bg-mystic-800 border border-gold-500/30 p-8 rounded-3xl max-w-sm w-full relative shadow-2xl">
-                  <button onClick={closeLogin} className="absolute top-4 right-4 text-mystic-500 hover:text-white">✕</button>
-                  
-                  {isAdminMode ? (
-                      <>
-                          <h3 className="text-2xl font-serif text-white mb-2">Admin Access</h3>
-                          <p className="text-mystic-400 text-sm mb-6">Enter Security PIN</p>
-                           <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-                              <input type="password" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} placeholder="PIN Code" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 text-center tracking-widest text-lg" autoFocus />
-                              {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
-                              <button type="submit" className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors">Verify Access</button>
-                           </form>
-                      </>
-                  ) : (
-                      <>
-                           {loginStep === 'credentials' && (
-                              <>
-                                  <h3 className="text-2xl font-serif text-white mb-2">Welcome Back</h3>
-                                  <p className="text-mystic-400 text-sm mb-6">Enter credentials to verify identity.</p>
-                                  <form onSubmit={handleCredentialsSubmit} className="space-y-4">
-                                      <input type="text" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="Phone Number or Email" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-all" autoFocus />
-                                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-all" />
-                                      <div className="text-right">
-                                          <button type="button" onClick={() => { setLoginStep('forgot_request'); setErrorMsg(''); }} className="text-xs text-gold-500 hover:text-white underline">Forgot Password?</button>
-                                      </div>
-                                      {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
-                                      <button type="submit" disabled={isLoading} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors flex items-center justify-center">
-                                          {isLoading ? <span className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></span> : 'Authenticate'}
-                                      </button>
-                                  </form>
-                              </>
-                           )}
-
-                           {loginStep === 'otp' && (
-                              <>
-                                  <h3 className="text-2xl font-serif text-white mb-2">Verify OTP</h3>
-                                  <p className="text-mystic-400 text-sm mb-6">Code sent to your contact.</p>
-                                  <form onSubmit={handleOtpSubmit} className="space-y-4">
-                                      <input type="text" value={otp} onChange={(e) => { const val = e.target.value.trim(); if (val.length <= 6) setOtp(val); }} placeholder="Enter 6-digit Code" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500 transition-all text-center tracking-widest text-lg font-mono" maxLength={6} autoFocus />
-                                      {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
-                                      <button type="submit" disabled={otp.length < 6 || isLoading} className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors flex items-center justify-center">
-                                           {isLoading ? <span className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></span> : 'Verify & Login'}
-                                      </button>
-                                  </form>
-                              </>
-                           )}
-
-                           {loginStep === 'forgot_request' && (
-                               <>
-                                  <h3 className="text-2xl font-serif text-white mb-2">Reset Password</h3>
-                                  <p className="text-mystic-400 text-sm mb-6">Enter your registered contact to receive OTP.</p>
-                                  <form onSubmit={handleForgotRequest} className="space-y-4">
-                                      <input type="text" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="Phone Number or Email" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-all" autoFocus />
-                                      <div className="text-right">
-                                          <button type="button" onClick={() => setLoginStep('credentials')} className="text-xs text-mystic-500 hover:text-white">Back to Login</button>
-                                      </div>
-                                      {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
-                                      <button type="submit" disabled={isLoading || !phoneNumber} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors flex items-center justify-center">
-                                          {isLoading ? <span className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></span> : 'Send Reset Code'}
-                                      </button>
-                                  </form>
-                               </>
-                           )}
-
-                           {loginStep === 'forgot_otp' && (
-                               <>
-                                  <h3 className="text-2xl font-serif text-white mb-2">Verify Reset Code</h3>
-                                  <p className="text-mystic-400 text-sm mb-6">Enter the code sent to {phoneNumber}</p>
-                                  <form onSubmit={handleForgotOtpVerify} className="space-y-4">
-                                      <input type="text" value={otp} onChange={(e) => { const val = e.target.value.trim(); if (val.length <= 6) setOtp(val); }} placeholder="Enter 6-digit Code" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500 transition-all text-center tracking-widest text-lg font-mono" maxLength={6} autoFocus />
-                                      {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
-                                      <button type="submit" disabled={otp.length < 6 || isLoading} className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors flex items-center justify-center">
-                                           {isLoading ? <span className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></span> : 'Verify Code'}
-                                      </button>
-                                  </form>
-                               </>
-                           )}
-
-                           {loginStep === 'forgot_new_password' && (
-                               <>
-                                  <h3 className="text-2xl font-serif text-white mb-2">Create New Password</h3>
-                                  <p className="text-mystic-400 text-sm mb-6">Set a secure password for your account.</p>
-                                  <form onSubmit={handlePasswordReset} className="space-y-4">
-                                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="New Password" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-all" autoFocus />
-                                      <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm Password" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-all" />
-                                      {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
-                                      <button type="submit" disabled={isLoading || password.length < 4} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors flex items-center justify-center">
-                                          {isLoading ? <span className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></span> : 'Reset Password'}
-                                      </button>
-                                  </form>
-                               </>
-                           )}
-                      </>
-                  )}
-              </div>
-          </div>
-      )}
 
     </div>
   );

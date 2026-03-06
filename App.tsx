@@ -1,4 +1,5 @@
 
+import { loadRazorpay } from './utils/razorpay';
 import React, { useState, useEffect, useRef } from 'react';
 import { Sender, Message, UserState, AppView, Astrologer, MessageType, CallState, Product, Earnings, Transaction, HoroscopeData, Language, CommunicationLog } from './types';
 import { INITIAL_DAILY_LIMIT, PREMIUM_DAILY_LIMIT, generateSystemInstruction, SUGGESTED_QUESTIONS, TOPIC_QUESTIONS, RAZORPAY_KEY_ID, TEST_RAZORPAY_KEY, TRANSLATIONS, MOCK_PRODUCTS, MOCK_ASTROLOGERS, formatDisplayName } from './constants';
@@ -948,50 +949,61 @@ export default function App() {
       setTransactions(p=>[tx,...p]); saveTransaction(tx); 
   };
   
-  const proceedToRazorpay = () => { 
-      if(pendingPayment && window.Razorpay) { 
-          // Detect primary contact and missing info
-          const primaryContact = pendingPayment.contact || userState.contact || '';
-          const isPrimaryEmail = primaryContact.includes('@');
-          
-          const prefillData = {
-              email: isPrimaryEmail ? primaryContact : missingContactInfo,
-              contact: isPrimaryEmail ? missingContactInfo : primaryContact
-          };
-
-          // Helper to create options safely
-          const createOptions = (key: string) => ({ 
-              key: key.trim(), // Ensure no whitespace
-              amount: pendingPayment.amount * 100, 
-              currency: "INR", 
-              name: "Astro21", 
-              description: pendingPayment.description, 
-              handler: (response: any) => { 
-                  // Pass Razorpay Payment ID to success handler
-                  pendingPayment.onSuccess(response.razorpay_payment_id); 
-                  setShowPaymentConfirmation(false); 
-              }, 
-              prefill: prefillData,
-              theme: { color: "#DAA520" }
-          });
-          
+  const proceedToRazorpay = async () => { 
+      if(pendingPayment) { 
           try {
-              // Attempt with configured key (Primary)
-              // Ensure we fallback to Test if Primary is missing or obviously garbage (empty)
-              const primaryKey = RAZORPAY_KEY_ID && RAZORPAY_KEY_ID.length > 5 ? RAZORPAY_KEY_ID : TEST_RAZORPAY_KEY;
-              
-              const rzp = new window.Razorpay(createOptions(primaryKey));
-              rzp.open();
+            await loadRazorpay();
           } catch (e) {
-              console.warn("Primary Key Failed, falling back to Test Key");
-              try {
-                  const rzpTest = new window.Razorpay(createOptions(TEST_RAZORPAY_KEY));
-                  rzpTest.open();
-              } catch (e2) {
-                  alert("Payment Gateway Unavailable. Please try again later.");
-              }
+            alert("Failed to load payment gateway. Please check your internet connection.");
+            return;
           }
-      } else alert("Razorpay offline"); 
+
+          if (window.Razorpay) {
+              // Detect primary contact and missing info
+              const primaryContact = pendingPayment.contact || userState.contact || '';
+              const isPrimaryEmail = primaryContact.includes('@');
+              
+              const prefillData = {
+                  email: isPrimaryEmail ? primaryContact : missingContactInfo,
+                  contact: isPrimaryEmail ? missingContactInfo : primaryContact
+              };
+
+              // Helper to create options safely
+              const createOptions = (key: string) => ({ 
+                  key: key.trim(), // Ensure no whitespace
+                  amount: pendingPayment.amount * 100, 
+                  currency: "INR", 
+                  name: "Astro21", 
+                  description: pendingPayment.description, 
+                  handler: (response: any) => { 
+                      // Pass Razorpay Payment ID to success handler
+                      pendingPayment.onSuccess(response.razorpay_payment_id); 
+                      setShowPaymentConfirmation(false); 
+                  }, 
+                  prefill: prefillData,
+                  theme: { color: "#DAA520" }
+              });
+              
+              try {
+                  // Attempt with configured key (Primary)
+                  // Ensure we fallback to Test if Primary is missing or obviously garbage (empty)
+                  const primaryKey = RAZORPAY_KEY_ID && RAZORPAY_KEY_ID.length > 5 ? RAZORPAY_KEY_ID : TEST_RAZORPAY_KEY;
+                  
+                  const rzp = new window.Razorpay(createOptions(primaryKey));
+                  rzp.open();
+              } catch (e) {
+                  console.warn("Primary Key Failed, falling back to Test Key");
+                  try {
+                      const rzpTest = new window.Razorpay(createOptions(TEST_RAZORPAY_KEY));
+                      rzpTest.open();
+                  } catch (e2) {
+                      alert("Payment Gateway Unavailable. Please try again later.");
+                  }
+              }
+          } else {
+              alert("Razorpay offline");
+          }
+      } 
   };
 
   const initiateProductPurchase = (p: Product) => { setSelectedProductForPurchase(p); setShippingDetails({ address:'', city:'', pincode:'', phone:'' }); setShowAddressModal(true); };
