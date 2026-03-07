@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
-
-Sitemap: https://astro21.com/sitemap.xml
+Disallow: /dashboard
+Disallow: /chat
+Disallow: /admin
+Disallow: /profile
+Sitemap: https://www.astro21.io/sitemap.xml

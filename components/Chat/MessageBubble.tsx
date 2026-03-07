@@ -361,7 +361,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
     if (message.type === MessageType.IMAGE && message.attachmentUrl) {
         return (
             <div className="rounded-lg overflow-hidden border border-white/10 my-1">
-                <img src={message.attachmentUrl} alt="Attachment" className="max-w-full h-auto max-h-64 object-cover" />
+                <img src={message.attachmentUrl} alt={`Astrological chart or reading attachment for ${userName}`} className="max-w-full h-auto max-h-64 object-cover" />
             </div>
         );
     }
@@ -384,7 +384,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
                 {formatDisplayName(userName).charAt(0).toUpperCase()}
              </div>
         ) : isAstro ? (
-            <img src={astrologer?.imageUrl || 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80'} alt="Astro" className="w-full h-full object-cover" />
+            <img src={astrologer?.imageUrl || 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80'} alt={`Vedic Astrologer ${astrologer?.name || 'Expert'}`} className="w-full h-full object-cover" />
         ) : message.sender === Sender.SYSTEM ? (
             <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs">⚙️</div>
         ) : (

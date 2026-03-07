@@ -22,7 +22,7 @@ const AstroCard: React.FC<AstroCardProps> = ({ astrologer, onConnect, connectedA
         <div className={`w-20 h-20 rounded-full p-[2px] ${isConnectedToThis ? 'bg-green-500 animate-pulse' : 'bg-gradient-to-br from-gold-400 to-mystic-900'}`}>
            <img 
             src={astrologer.imageUrl} 
-            alt={astrologer.name} 
+            alt={`Verified Vedic Astrologer ${astrologer.name} - Expert in ${astrologer.specialty}`} 
             className="w-full h-full rounded-full object-cover border-2 border-mystic-900"
            />
         </div>

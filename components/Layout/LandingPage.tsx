@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { Link } from 'react-router-dom';
 import StarBackground from './StarBackground';
 import { sendAuthOtp, verifyAuthOtp, resetUserPassword } from '../../services/dbService';
 
@@ -382,7 +383,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         </h1>
         
         <p className="text-xl md:text-2xl text-mystic-200 font-light max-w-2xl mx-auto mb-12">
-            {t.subheadline}
+            Talk to verified Vedic astrologers online, get your free kundli, 
+            daily horoscope, kundli matching and more — powered by AI. 
+            Starting at just ₹21.
+        </p>
+
+        <p className="sr-only">
+          Astro21 is India's leading online astrology platform offering 
+          live astrologer consultations, free kundli generation, kundli matching 
+          for marriage, daily horoscope in Hindi and English, AI palm reading, 
+          natal chart analysis, Vedic gemstone recommendations and live digital 
+          poojas. Available in Hindi, Malayalam, Punjabi and Marathi.
         </p>
 
         <div className="bg-mystic-800/60 backdrop-blur-md border border-gold-500/30 rounded-3xl p-8 max-w-xl w-full mx-auto mb-8 shadow-[0_0_40px_rgba(245,158,11,0.15)] transform hover:scale-[1.02] transition-transform duration-300">
@@ -448,14 +459,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
-                    { icon: '🔮', name: 'Kundli Generation', desc: 'Your birth chart, in seconds', status: 'Available' },
-                    { icon: '💑', name: 'Kundli Matching', desc: 'Vedic compatibility analysis', status: 'Available' },
-                    { icon: '🌙', name: 'Natal Chart', desc: 'Western astrology chart', status: 'Available' },
-                    { icon: '🖐️', name: 'Palm Reading', desc: 'AI-powered palmistry', status: 'Available' },
-                    { icon: '💎', name: 'Gemstones & Remedies', desc: 'Authentic, Guru-recommended', status: 'Available' },
-                    { icon: '🙏', name: 'Live Digital Poojas', desc: 'Book a pooja, anytime', status: 'Available' }
+                    { icon: '🔮', name: 'Kundli Generation', desc: 'Your birth chart, in seconds', status: 'Available', path: '/kundli' },
+                    { icon: '💑', name: 'Kundli Matching', desc: 'Vedic compatibility analysis', status: 'Available', path: '/kundli-matching' },
+                    { icon: '🌙', name: 'Natal Chart', desc: 'Western astrology chart', status: 'Available', path: '/natal-chart' },
+                    { icon: '🖐️', name: 'Palm Reading', desc: 'AI-powered palmistry', status: 'Available', path: '/palm-reading' },
+                    { icon: '💎', name: 'Gemstones & Remedies', desc: 'Authentic, Guru-recommended', status: 'Available', path: '/gemstones' },
+                    { icon: '🙏', name: 'Live Digital Poojas', desc: 'Book a pooja, anytime', status: 'Available', path: '/poojas' }
                 ].map((mod, i) => (
-                    <div key={i} className="bg-mystic-800/40 border border-white/5 rounded-2xl p-6 flex items-start gap-4 hover:bg-mystic-800/80 transition-colors">
+                    <Link key={i} to={mod.path} className="bg-mystic-800/40 border border-white/5 rounded-2xl p-6 flex items-start gap-4 hover:bg-mystic-800/80 transition-colors">
                         <div className="text-3xl">{mod.icon}</div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
@@ -464,7 +475,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                             </div>
                             <p className="text-sm text-mystic-200">{mod.desc}</p>
                         </div>
-                    </div>
+                    </Link>
                 ))}
             </div>
         </div>
@@ -476,18 +487,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             <div>
                 <h2 className="text-3xl md:text-5xl font-serif text-white mb-6">{t.guruHeading}</h2>
                 <p className="text-xl text-mystic-300 mb-8 leading-relaxed">{t.guruSub}</p>
-                <button 
-                    onClick={onSeekerEnter}
+                <Link 
+                    to="/talk-to-astrologer"
                     className="px-8 py-4 rounded-full border-2 border-gold-500 text-gold-400 font-bold hover:bg-gold-500 hover:text-mystic-950 transition-colors text-lg"
                 >
                     {t.guruCta}
-                </button>
+                </Link>
             </div>
             <div className="flex justify-center lg:justify-end">
                 <div className="bg-mystic-800 border border-white/10 rounded-3xl p-6 max-w-sm w-full shadow-2xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="w-16 h-16 rounded-full bg-mystic-700 overflow-hidden border-2 border-gold-500/30">
-                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80" alt="Guru" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80" alt="Verified Vedic astrologer available for online consultation" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         </div>
                         <div>
                             <h3 className="font-serif font-bold text-white text-lg">Pandit Arvind Shastri</h3>
@@ -644,13 +655,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 </div>
             </div>
             <div>
-                <h4 className="text-white font-bold mb-4">Links</h4>
+                <h4 className="text-white font-bold mb-4">Modules</h4>
                 <ul className="space-y-2 text-sm text-mystic-300">
-                    <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-gold-400 transition-colors">Home</button></li>
-                    <li><button className="hover:text-gold-400 transition-colors">About</button></li>
-                    <li><button className="hover:text-gold-400 transition-colors">Modules</button></li>
-                    <li><button className="hover:text-gold-400 transition-colors">Pricing</button></li>
-                    <li><button className="hover:text-gold-400 transition-colors">Blog</button></li>
+                    <li><Link to="/talk-to-astrologer" className="hover:text-gold-400 transition-colors">Talk to Astrologer</Link></li>
+                    <li><Link to="/kundli" className="hover:text-gold-400 transition-colors">Free Kundli</Link></li>
+                    <li><Link to="/kundli-matching" className="hover:text-gold-400 transition-colors">Kundli Matching</Link></li>
+                    <li><Link to="/daily-horoscope" className="hover:text-gold-400 transition-colors">Daily Horoscope</Link></li>
+                    <li><Link to="/palm-reading" className="hover:text-gold-400 transition-colors">Palm Reading</Link></li>
+                    <li><Link to="/natal-chart" className="hover:text-gold-400 transition-colors">Natal Chart</Link></li>
                 </ul>
             </div>
             <div>
