@@ -1161,7 +1161,7 @@ export default function App() {
           </header>
       )}
 
-      <main className={`relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto h-screen ${userState.hasOnboarded ? 'pt-20 md:pt-24' : ''}`}>
+      <main id="main-content" className={`relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto h-screen ${userState.hasOnboarded ? 'pt-20 md:pt-24' : ''}`}>
         {!userState.hasOnboarded ? (
             <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
         ) : (

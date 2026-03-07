@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => {
             vendor: ['react', 'react-dom'],
             router: ['react-router-dom'],
             supabase: ['@supabase/supabase-js'],
+            agora: ['agora-rtc-sdk-ng'],
+            genai: ['@google/genai']
           }
         }
       }

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import AgoraRTC, { IAgoraRTCClient, ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng';
+import type { IAgoraRTCClient, ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng';
 import { AGORA_APP_ID, AGORA_TEMP_TOKEN } from '../../constants';
 
 interface CallInterfaceProps {
@@ -20,6 +20,7 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
   const [isSimulation, setIsSimulation] = useState(false);
 
   const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const agoraRef = useRef<any>(null);
   const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
   const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
   const remoteContainerRef = useRef<HTMLDivElement>(null);
@@ -40,6 +41,10 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
   useEffect(() => {
     const initAgora = async () => {
       try {
+        // Dynamic Import Agora SDK
+        const { default: AgoraRTC } = await import('agora-rtc-sdk-ng');
+        agoraRef.current = AgoraRTC;
+        
         // Hide Agora Logs
         AgoraRTC.setLogLevel(4); 
 
@@ -72,10 +77,10 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
         console.log("Joined channel", channel, "as", uid);
 
         // Create Local Tracks
-        localAudioTrackRef.current = await AgoraRTC.createMicrophoneAudioTrack();
+        localAudioTrackRef.current = await agoraRef.current.createMicrophoneAudioTrack();
         
         if (callType === 'video') {
-            localVideoTrackRef.current = await AgoraRTC.createCameraVideoTrack();
+            localVideoTrackRef.current = await agoraRef.current.createCameraVideoTrack();
         }
 
         // Publish
@@ -107,8 +112,8 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
              // Try to still get local camera for realism even if connection failed
              try {
                 if (callType === 'video' && !localVideoTrackRef.current) {
-                    localVideoTrackRef.current = await AgoraRTC.createCameraVideoTrack();
-                    if (localVideoContainerRef.current) localVideoTrackRef.current.play(localVideoContainerRef.current);
+                    localVideoTrackRef.current = await agoraRef.current.createCameraVideoTrack();
+                    if (localVideoContainerRef.current && localVideoTrackRef.current) localVideoTrackRef.current.play(localVideoContainerRef.current);
                 }
              } catch(e) { console.error("Could not even get local video for sim", e); }
              
@@ -176,9 +181,9 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
       if (localVideoTrackRef.current) {
           await localVideoTrackRef.current.setEnabled(isVideoOff); 
           setIsVideoOff(!isVideoOff);
-      } else if (!localVideoTrackRef.current && !isVideoOff) {
+      } else if (!localVideoTrackRef.current && !isVideoOff && agoraRef.current) {
           try {
-              const videoTrack = await AgoraRTC.createCameraVideoTrack();
+              const videoTrack = await agoraRef.current.createCameraVideoTrack();
               localVideoTrackRef.current = videoTrack;
               if (clientRef.current) await clientRef.current.publish(videoTrack);
               if (localVideoContainerRef.current) videoTrack.play(localVideoContainerRef.current);

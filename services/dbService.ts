@@ -470,8 +470,8 @@ export const createProduct = async (product: Product): Promise<Product | null> =
   if (!supabase) return product;
   const payload = { name: product.name, category: product.category, price: product.price, description: product.description, benefits: product.benefits, image_url: product.imageUrl };
   let data, error;
-  if (product.id && product.id.length > 10 && !product.id.startsWith('p')) { ({ data, error } = await supabase.from('products').update(payload).eq('id', product.id).select().single()); } 
-  else { ({ data, error } = await supabase.from('products').insert([payload]).select().single()); }
+  if (product.id && product.id.length > 10 && !product.id.startsWith('p')) { ({ data, error } = await supabase.from('products').update(payload).eq('id', product.id).select('*').single()); } 
+  else { ({ data, error } = await supabase.from('products').insert([payload]).select('*').single()); }
   if (error) { logError('createProduct', error); return null; }
   console.log("⬇️ [DB Success] createProduct");
   return { ...product, id: data.id, name: data.name, imageUrl: data.image_url, category: data.category };

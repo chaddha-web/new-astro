@@ -615,7 +615,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 className="group relative overflow-hidden rounded-3xl p-12 text-left transition-transform hover:-translate-y-2"
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-mystic-800 to-gold-900 opacity-90"></div>
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1600609842388-3e4b7c3d4f82?auto=format&fit=crop&w=1000&q=80')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1532622785990-d2c36a76f5a6?auto=format&fit=crop&w=1000&q=80')] bg-cover bg-center mix-blend-overlay opacity-20"></div>
                 <div className="relative z-10">
                     <h3 className="text-4xl font-serif font-bold text-white mb-4">{t.guruTitle}</h3>
                     <p className="text-gold-200 font-medium text-lg flex items-center gap-2 group-hover:text-white transition-colors">
