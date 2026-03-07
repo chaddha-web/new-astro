@@ -380,7 +380,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             </span>
         </h1>
         
-        <p className="text-xl md:text-2xl text-mystic-300 font-light max-w-2xl mx-auto mb-12">
+        <p className="text-xl md:text-2xl text-mystic-200 font-light max-w-2xl mx-auto mb-12">
             {t.subheadline}
         </p>
 
@@ -395,19 +395,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
 
         <button 
             onClick={onSeekerEnter}
-            className="w-full max-w-md bg-gold-500 hover:bg-gold-400 text-mystic-950 text-xl font-bold py-5 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_50px_rgba(245,158,11,0.6)] transition-all transform hover:-translate-y-1 mb-6"
+            className="w-full max-w-md bg-gold-500 hover:bg-gold-400 text-black font-bold text-xl py-5 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_50px_rgba(245,158,11,0.6)] transition-all transform hover:-translate-y-1 mb-6"
         >
             {t.cta}
         </button>
 
         <button 
             onClick={() => setShowLoginModal(true)}
-            className="text-mystic-400 hover:text-white underline transition-colors mb-12"
+            className="text-white/70 hover:text-white underline transition-colors mb-12"
         >
             {t.loginText}
         </button>
 
-        <div className="flex flex-wrap justify-center gap-4 md:gap-8 text-xs md:text-sm font-medium text-mystic-400">
+        <div className="flex flex-wrap justify-center gap-4 md:gap-8 text-xs md:text-sm font-medium text-white/90">
             <span className="flex items-center gap-2">🔒 End-to-End Encrypted</span>
             <span className="flex items-center gap-2">✨ 100% Private</span>
             <span className="flex items-center gap-2">⭐ Trusted by 10,000+ Seekers</span>
@@ -443,7 +443,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
                 <h2 className="text-3xl md:text-5xl font-serif text-white mb-4">{t.modulesHeading}</h2>
-                <p className="text-xl text-mystic-400">{t.modulesSub}</p>
+                <p className="text-xl text-mystic-200">{t.modulesSub}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
@@ -458,10 +458,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                         <div className="text-3xl">{mod.icon}</div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-bold text-white">{mod.name}</h4>
+                                <h3 className="font-bold text-white">{mod.name}</h3>
                                 <span className="text-[10px] uppercase tracking-wider bg-gold-500/10 text-gold-400 px-2 py-0.5 rounded-full">{mod.status}</span>
                             </div>
-                            <p className="text-sm text-mystic-400">{mod.desc}</p>
+                            <p className="text-sm text-mystic-200">{mod.desc}</p>
                         </div>
                     </div>
                 ))}
@@ -489,15 +489,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                             <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80" alt="Guru" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         </div>
                         <div>
-                            <h4 className="font-serif font-bold text-white text-lg">Pandit Arvind Shastri</h4>
-                            <p className="text-sm text-mystic-400">Kundli · Marriage · Career</p>
+                            <h3 className="font-serif font-bold text-white text-lg">Pandit Arvind Shastri</h3>
+                            <p className="text-sm text-mystic-200">Kundli · Marriage · Career</p>
                         </div>
                     </div>
                     <div className="flex justify-between items-center mb-6 text-sm">
                         <div className="text-gold-400 font-medium">⭐ 4.9 <span className="text-mystic-500">| 1,240 sessions</span></div>
                         <div className="text-green-400 font-medium flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online Now</div>
                     </div>
-                    <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-mystic-950 font-bold py-3 rounded-xl transition-colors">
+                    <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-black font-bold py-3 rounded-xl transition-colors">
                         Chat Now
                     </button>
                 </div>
@@ -510,7 +510,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
                 <h2 className="text-3xl md:text-5xl font-serif text-white mb-4">{t.pricingHeading}</h2>
-                <p className="text-xl text-mystic-400">{t.pricingSub}</p>
+                <p className="text-xl text-mystic-200">{t.pricingSub}</p>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-center">
@@ -518,20 +518,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 <div className="bg-mystic-800/80 backdrop-blur-md border-2 border-gold-500 rounded-3xl p-8 relative transform lg:-translate-y-4 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold-500 text-mystic-950 text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Most Popular</div>
                     <h3 className="text-xl font-bold text-white mb-2">STARTER</h3>
-                    <div className="text-4xl font-serif text-gold-400 mb-6">₹21 <span className="text-sm text-mystic-400 font-sans">one-time</span></div>
+                    <div className="text-4xl font-serif text-gold-400 mb-6">₹21 <span className="text-sm text-mystic-300 font-sans">one-time</span></div>
                     <ul className="space-y-4 mb-8 text-sm text-mystic-200">
                         <li className="flex items-center gap-2"><span>✓</span> 3 years access</li>
                         <li className="flex items-center gap-2"><span>✓</span> Daily AI horoscope</li>
                         <li className="flex items-center gap-2"><span>✓</span> 15 questions (3/day)</li>
                         <li className="flex items-center gap-2 text-mystic-500"><span>✗</span> Live Guru calls</li>
                     </ul>
-                    <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-mystic-950 font-bold py-3 rounded-xl transition-colors">Start for ₹21</button>
+                    <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-black font-bold py-3 rounded-xl transition-colors">Start for ₹21</button>
                 </div>
 
                 {/* Card 2: Day Pass */}
                 <div className="bg-mystic-800/40 backdrop-blur-md border border-white/10 rounded-3xl p-8 hover:border-white/30 transition-colors">
                     <h3 className="text-xl font-bold text-white mb-2">DAY PASS</h3>
-                    <div className="text-4xl font-serif text-white mb-6">₹99 <span className="text-sm text-mystic-400 font-sans">/ one day</span></div>
+                    <div className="text-4xl font-serif text-white mb-6">₹99 <span className="text-sm text-mystic-300 font-sans">/ one day</span></div>
                     <ul className="space-y-4 mb-8 text-sm text-mystic-200">
                         <li className="flex items-center gap-2"><span>✓</span> Unlimited access</li>
                         <li className="flex items-center gap-2"><span>✓</span> All AI features</li>
@@ -543,7 +543,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 {/* Card 3: Premium Monthly */}
                 <div className="bg-mystic-800/40 backdrop-blur-md border border-white/10 rounded-3xl p-8 hover:border-white/30 transition-colors">
                     <h3 className="text-xl font-bold text-white mb-2">PREMIUM MONTHLY</h3>
-                    <div className="text-4xl font-serif text-white mb-6">₹249 <span className="text-sm text-mystic-400 font-sans">/ month</span></div>
+                    <div className="text-4xl font-serif text-white mb-6">₹249 <span className="text-sm text-mystic-300 font-sans">/ month</span></div>
                     <ul className="space-y-4 mb-8 text-sm text-mystic-200">
                         <li className="flex items-center gap-2"><span>✓</span> Everything unlimited</li>
                         <li className="flex items-center gap-2"><span>✓</span> Unlimited Guru calls</li>
@@ -556,7 +556,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 <div className="bg-mystic-800/60 backdrop-blur-md border border-indigo-500/50 rounded-3xl p-8 relative shadow-[0_0_20px_rgba(99,102,241,0.1)]">
                     <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Best Value</div>
                     <h3 className="text-xl font-bold text-white mb-2">ANNUAL</h3>
-                    <div className="text-4xl font-serif text-white mb-6">₹1,149 <span className="text-sm text-mystic-400 font-sans">/ year</span></div>
+                    <div className="text-4xl font-serif text-white mb-6">₹1,149 <span className="text-sm text-mystic-300 font-sans">/ year</span></div>
                     <ul className="space-y-4 mb-8 text-sm text-mystic-200">
                         <li className="flex items-center gap-2"><span>✓</span> Everything in Premium</li>
                         <li className="flex items-center gap-2"><span>✓</span> Save 62% vs monthly</li>
@@ -577,19 +577,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         <div className="max-w-6xl mx-auto px-6 flex flex-wrap justify-center gap-8 md:gap-16 text-center">
             <div>
                 <div className="text-3xl md:text-4xl font-serif font-bold text-gold-400 mb-1">{seekersCount.toLocaleString()}+</div>
-                <div className="text-xs uppercase tracking-widest text-mystic-400">Seekers</div>
+                <div className="text-xs uppercase tracking-widest text-mystic-300">Seekers</div>
             </div>
             <div>
                 <div className="text-3xl md:text-4xl font-serif font-bold text-gold-400 mb-1">{gurusCount.toLocaleString()}+</div>
-                <div className="text-xs uppercase tracking-widest text-mystic-400">Verified Gurus</div>
+                <div className="text-xs uppercase tracking-widest text-mystic-300">Verified Gurus</div>
             </div>
             <div>
                 <div className="text-3xl md:text-4xl font-serif font-bold text-gold-400 mb-1">⭐ 4.8</div>
-                <div className="text-xs uppercase tracking-widest text-mystic-400">Avg Rating</div>
+                <div className="text-xs uppercase tracking-widest text-mystic-300">Avg Rating</div>
             </div>
             <div>
                 <div className="text-3xl md:text-4xl font-serif font-bold text-gold-400 mb-1">{readingsCount.toLocaleString()}+</div>
-                <div className="text-xs uppercase tracking-widest text-mystic-400">Readings Delivered</div>
+                <div className="text-xs uppercase tracking-widest text-mystic-300">Readings Delivered</div>
             </div>
         </div>
       </section>
@@ -634,16 +634,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                     <div className="w-8 h-8 bg-gradient-to-br from-violet-600 to-indigo-900 rounded-full flex items-center justify-center text-sm shadow-[0_0_10px_rgba(124,58,237,0.5)]">🔮</div>
                     <span className="text-xl font-serif font-bold text-white">Astro21</span>
                 </div>
-                <p className="text-mystic-400 text-sm mb-6">{t.footerTagline}</p>
+                <p className="text-mystic-300 text-sm mb-6">{t.footerTagline}</p>
                 <div className="flex gap-4">
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-mystic-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">𝕏</div>
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-mystic-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">in</div>
-                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-mystic-400 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">ig</div>
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">𝕏</div>
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">in</div>
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 cursor-pointer transition-colors">ig</div>
                 </div>
             </div>
             <div>
                 <h4 className="text-white font-bold mb-4">Links</h4>
-                <ul className="space-y-2 text-sm text-mystic-400">
+                <ul className="space-y-2 text-sm text-mystic-300">
                     <li><button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-gold-400 transition-colors">Home</button></li>
                     <li><button className="hover:text-gold-400 transition-colors">About</button></li>
                     <li><button className="hover:text-gold-400 transition-colors">Modules</button></li>
@@ -653,7 +653,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             </div>
             <div>
                 <h4 className="text-white font-bold mb-4">Legal</h4>
-                <ul className="space-y-2 text-sm text-mystic-400">
+                <ul className="space-y-2 text-sm text-mystic-300">
                     <li><button onClick={() => { setPageView('privacy'); window.scrollTo(0, 0); }} className="hover:text-gold-400 transition-colors">Privacy Policy</button></li>
                     <li><button onClick={() => { setPageView('terms'); window.scrollTo(0, 0); }} className="hover:text-gold-400 transition-colors">Terms & Conditions</button></li>
                     <li><button className="hover:text-gold-400 transition-colors">Refund Policy</button></li>
