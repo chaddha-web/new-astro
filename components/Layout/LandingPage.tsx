@@ -146,7 +146,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [isGuruMode, setIsGuruMode] = useState(false);
   const [adminPin, setAdminPin] = useState('');
+  const [guruPin, setGuruPin] = useState('');
 
   // Social Proof Animation
   const [seekersCount, setSeekersCount] = useState(0);
@@ -196,8 +198,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         return;
     }
 
+    if (isGuruMode) {
+        if (guruPin === '2904') onGuruEnter();
+        else setErrorMsg("Incorrect Guru PIN");
+        return;
+    }
+
     if (phoneNumber.toLowerCase().trim() === 'admin') {
         setIsAdminMode(true);
+        return;
+    }
+
+    if (phoneNumber.toLowerCase().trim() === 'guru') {
+        setIsGuruMode(true);
         return;
     }
 
@@ -295,10 +308,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
   const closeLogin = () => {
       setShowLoginModal(false);
       setIsAdminMode(false);
+      setIsGuruMode(false);
       setPhoneNumber('');
       setPassword('');
       setConfirmPassword('');
       setAdminPin('');
+      setGuruPin('');
       setOtp('');
       setLoginStep('credentials');
       setErrorMsg('');
@@ -623,7 +638,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 </div>
             </button>
             <button 
-                onClick={onGuruEnter}
+                onClick={() => { setIsGuruMode(true); setShowLoginModal(true); }}
                 className="group relative overflow-hidden rounded-3xl p-12 text-left transition-transform hover:-translate-y-2"
             >
                 <div className="absolute inset-0 bg-gradient-to-br from-mystic-800 to-gold-900 opacity-90"></div>
@@ -692,6 +707,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                           <p className="text-mystic-400 text-sm mb-6">Enter Security PIN</p>
                            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
                               <input type="password" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} placeholder="PIN Code" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 text-center tracking-widest text-lg" autoFocus />
+                              {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
+                              <button type="submit" className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors">Verify Access</button>
+                           </form>
+                      </>
+                  ) : isGuruMode ? (
+                      <>
+                          <h3 className="text-2xl font-serif text-white mb-2">Guru Access</h3>
+                          <p className="text-mystic-400 text-sm mb-6">Enter Security PIN</p>
+                           <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+                              <input type="password" value={guruPin} onChange={(e) => setGuruPin(e.target.value)} placeholder="PIN Code" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 text-center tracking-widest text-lg" autoFocus />
                               {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
                               <button type="submit" className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-mystic-900 font-bold py-3 rounded-xl transition-colors">Verify Access</button>
                            </form>

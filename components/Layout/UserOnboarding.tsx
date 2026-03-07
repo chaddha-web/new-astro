@@ -44,6 +44,8 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
   const [timer, setTimer] = useState(0);
   const [debouncedPlace, setDebouncedPlace] = useState('');
   const [verifiedUserId, setVerifiedUserId] = useState<string | undefined>(undefined);
+  const [showGuruPin, setShowGuruPin] = useState(false);
+  const [guruPin, setGuruPin] = useState('');
 
   const [formData, setFormData] = useState<OnboardingData>({
     contact: '',
@@ -250,60 +252,87 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
     }
   };
 
+  const handleGuruPinSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (guruPin === '2904') {
+          onGuruLogin?.();
+      } else {
+          setErrorMsg("Incorrect Guru PIN");
+      }
+  };
+
   const renderStep1 = () => (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-        <div className="text-center mb-6">
-             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">📱</div>
-             <h3 className="text-xl font-serif text-white">Let's stay connected</h3>
-             <p className="text-mystic-400 text-sm">Verify your mobile or email to start.</p>
-        </div>
-        <form onSubmit={otpSent ? (isOtpVerified ? handleSetPasswordAndContinue : handleVerifyOtp) : handleSendOtp} className="space-y-4">
-            <label className="text-xs uppercase tracking-widest text-mystic-400 font-bold ml-1">Email or Mobile Number</label>
-            <div className="flex gap-2 relative">
-                {!isEmailDetected && !otpSent && (
-                    <div className="animate-in slide-in-from-left-4 fade-in duration-300 shrink-0">
-                        <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="h-full bg-mystic-900/50 border border-mystic-700 rounded-xl px-2 text-white focus:outline-none focus:border-gold-500 transition-all text-sm appearance-none text-center cursor-pointer min-w-[70px]">
-                            {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
-                        </select>
-                    </div>
-                )}
-                <input type="text" value={contactInput} onChange={e => setContactInput(e.target.value)} disabled={otpSent || isLoading} className={`flex-1 bg-mystic-900/50 border rounded-xl px-4 py-4 text-white focus:outline-none focus:border-gold-500 transition-all placeholder-mystic-600 ${otpSent ? 'border-gold-500/50 text-mystic-400 cursor-not-allowed' : 'border-mystic-700'}`} placeholder="Enter mobile number or email" autoFocus={!otpSent} />
-                {otpSent && !isOtpVerified && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gold-500 text-sm animate-pulse">Verifying...</div>}
-                {isOtpVerified && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xl">✓</div>}
-            </div>
-            {!isEmailDetected && !otpSent && <p className="text-[10px] text-mystic-500 pl-1">Country code: {countryCode} (Auto-detected)</p>}
-
-            {otpSent && !isOtpVerified && (
-                <div className="animate-in slide-in-from-top-4 fade-in duration-500 mt-4 bg-mystic-800/50 p-4 rounded-xl border border-gold-500/30">
-                    <label className="text-xs uppercase tracking-widest text-gold-400 font-bold block mb-2 text-center">Enter 6-Digit Code</label>
-                    <input type="text" value={otp} onChange={(e) => { const val = e.target.value.trim(); if (val.length <= 6) setOtp(val); }} placeholder="• • • • • •" maxLength={6} className="w-full bg-mystic-900 border-2 border-mystic-700 focus:border-gold-500 rounded-lg py-3 text-center text-2xl tracking-[0.5em] text-white outline-none font-mono transition-colors" autoFocus />
-                    <div className="flex justify-between items-center mt-4 border-t border-white/5 pt-2">
-                        <button type="button" onClick={handleSendOtp} disabled={isLoading || timer > 0} className={`text-[10px] underline ${timer > 0 ? 'text-mystic-600 cursor-not-allowed' : 'text-mystic-400 hover:text-white'}`}>{timer > 0 ? `Resend available in ${timer}s` : 'Resend Code'}</button>
-                        <button type="button" onClick={resetContact} className="text-[10px] text-red-400 hover:text-red-300 underline">Change Number/Email</button>
-                    </div>
-                    {errorMsg && <p className="text-red-400 text-xs text-center mt-2 font-bold">{errorMsg}</p>}
-                    <button type="submit" disabled={otp.length !== 6 || isLoading} className="w-full mt-4 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-3 rounded-lg shadow-lg transition-all">{isLoading ? 'Checking...' : 'Verify Code'}</button>
+        {showGuruPin ? (
+            <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                <div className="text-center mb-6">
+                     <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">🔐</div>
+                     <h3 className="text-xl font-serif text-white">Guru Access</h3>
+                     <p className="text-mystic-400 text-sm">Enter Security PIN to continue.</p>
                 </div>
-            )}
-
-            {isOtpVerified && (
-                 <div className="animate-in slide-in-from-top-4 fade-in duration-500 mt-4 space-y-4">
-                    <div className="bg-mystic-800/50 p-4 rounded-xl border border-green-500/30">
-                        <label className="text-xs uppercase tracking-widest text-green-400 font-bold block mb-2">Create Password</label>
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Set a secure password" className="w-full bg-mystic-900 border border-mystic-600 focus:border-green-500 rounded-lg py-3 px-4 text-white outline-none transition-colors" autoFocus />
+                <form onSubmit={handleGuruPinSubmit} className="space-y-4">
+                    <input type="password" value={guruPin} onChange={(e) => setGuruPin(e.target.value)} placeholder="PIN Code" className="w-full bg-mystic-900 border border-mystic-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-gold-500 text-center tracking-widest text-lg" autoFocus />
+                    {errorMsg && <p className="text-red-400 text-xs text-center">{errorMsg}</p>}
+                    <button type="submit" className="w-full bg-gold-500 hover:bg-gold-400 text-mystic-900 font-bold py-3 rounded-xl transition-colors">Verify Access</button>
+                    <button type="button" onClick={() => { setShowGuruPin(false); setGuruPin(''); setErrorMsg(''); }} className="w-full text-mystic-500 text-xs hover:text-white transition-colors">Cancel</button>
+                </form>
+            </div>
+        ) : (
+            <>
+                <div className="text-center mb-6">
+                     <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">📱</div>
+                     <h3 className="text-xl font-serif text-white">Let's stay connected</h3>
+                     <p className="text-mystic-400 text-sm">Verify your mobile or email to start.</p>
+                </div>
+                <form onSubmit={otpSent ? (isOtpVerified ? handleSetPasswordAndContinue : handleVerifyOtp) : handleSendOtp} className="space-y-4">
+                    <label className="text-xs uppercase tracking-widest text-mystic-400 font-bold ml-1">Email or Mobile Number</label>
+                    <div className="flex gap-2 relative">
+                        {!isEmailDetected && !otpSent && (
+                            <div className="animate-in slide-in-from-left-4 fade-in duration-300 shrink-0">
+                                <select value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="h-full bg-mystic-900/50 border border-mystic-700 rounded-xl px-2 text-white focus:outline-none focus:border-gold-500 transition-all text-sm appearance-none text-center cursor-pointer min-w-[70px]">
+                                    {COUNTRY_CODES.map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                                </select>
+                            </div>
+                        )}
+                        <input type="text" value={contactInput} onChange={e => setContactInput(e.target.value)} disabled={otpSent || isLoading} className={`flex-1 bg-mystic-900/50 border rounded-xl px-4 py-4 text-white focus:outline-none focus:border-gold-500 transition-all placeholder-mystic-600 ${otpSent ? 'border-gold-500/50 text-mystic-400 cursor-not-allowed' : 'border-mystic-700'}`} placeholder="Enter mobile number or email" autoFocus={!otpSent} />
+                        {otpSent && !isOtpVerified && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gold-500 text-sm animate-pulse">Verifying...</div>}
+                        {isOtpVerified && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-xl">✓</div>}
                     </div>
-                    {errorMsg && <p className="text-red-400 text-xs text-center font-bold">{errorMsg}</p>}
-                    <button type="submit" disabled={password.length < 4} className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-4 rounded-xl shadow-lg transition-all">Save & Continue →</button>
-                 </div>
-            )}
-            {!otpSent && (
-                <>
-                    {errorMsg && <p className="text-red-400 text-xs text-center font-bold">{errorMsg}</p>}
-                    <button type="submit" disabled={(!isEmailDetected && contactInput.length < 5) || (isEmailDetected && !contactInput.includes('@')) || isLoading} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center">{isLoading ? <div className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></div> : 'Send Verification Code'}</button>
-                </>
-            )}
-        </form>
-        {!otpSent && onGuruLogin && <div className="mt-4 text-center"><button onClick={onGuruLogin} className="text-xs text-violet-400 hover:text-white transition-colors underline">Guru Login Shortcut</button></div>}
+                    {!isEmailDetected && !otpSent && <p className="text-[10px] text-mystic-500 pl-1">Country code: {countryCode} (Auto-detected)</p>}
+
+                    {otpSent && !isOtpVerified && (
+                        <div className="animate-in slide-in-from-top-4 fade-in duration-500 mt-4 bg-mystic-800/50 p-4 rounded-xl border border-gold-500/30">
+                            <label className="text-xs uppercase tracking-widest text-gold-400 font-bold block mb-2 text-center">Enter 6-Digit Code</label>
+                            <input type="text" value={otp} onChange={(e) => { const val = e.target.value.trim(); if (val.length <= 6) setOtp(val); }} placeholder="• • • • • •" maxLength={6} className="w-full bg-mystic-900 border-2 border-mystic-700 focus:border-gold-500 rounded-lg py-3 text-center text-2xl tracking-[0.5em] text-white outline-none font-mono transition-colors" autoFocus />
+                            <div className="flex justify-between items-center mt-4 border-t border-white/5 pt-2">
+                                <button type="button" onClick={handleSendOtp} disabled={isLoading || timer > 0} className={`text-[10px] underline ${timer > 0 ? 'text-mystic-600 cursor-not-allowed' : 'text-mystic-400 hover:text-white'}`}>{timer > 0 ? `Resend available in ${timer}s` : 'Resend Code'}</button>
+                                <button type="button" onClick={resetContact} className="text-[10px] text-red-400 hover:text-red-300 underline">Change Number/Email</button>
+                            </div>
+                            {errorMsg && <p className="text-red-400 text-xs text-center mt-2 font-bold">{errorMsg}</p>}
+                            <button type="submit" disabled={otp.length !== 6 || isLoading} className="w-full mt-4 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-3 rounded-lg shadow-lg transition-all">{isLoading ? 'Checking...' : 'Verify Code'}</button>
+                        </div>
+                    )}
+
+                    {isOtpVerified && (
+                         <div className="animate-in slide-in-from-top-4 fade-in duration-500 mt-4 space-y-4">
+                            <div className="bg-mystic-800/50 p-4 rounded-xl border border-green-500/30">
+                                <label className="text-xs uppercase tracking-widest text-green-400 font-bold block mb-2">Create Password</label>
+                                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Set a secure password" className="w-full bg-mystic-900 border border-mystic-600 focus:border-green-500 rounded-lg py-3 px-4 text-white outline-none transition-colors" autoFocus />
+                            </div>
+                            {errorMsg && <p className="text-red-400 text-xs text-center font-bold">{errorMsg}</p>}
+                            <button type="submit" disabled={password.length < 4} className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-4 rounded-xl shadow-lg transition-all">Save & Continue →</button>
+                         </div>
+                    )}
+                    {!otpSent && (
+                        <>
+                            {errorMsg && <p className="text-red-400 text-xs text-center font-bold">{errorMsg}</p>}
+                            <button type="submit" disabled={(!isEmailDetected && contactInput.length < 5) || (isEmailDetected && !contactInput.includes('@')) || isLoading} className="w-full bg-gold-500 hover:bg-gold-400 disabled:opacity-50 disabled:cursor-not-allowed text-mystic-900 font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center">{isLoading ? <div className="w-5 h-5 border-2 border-mystic-900 border-t-transparent rounded-full animate-spin"></div> : 'Send Verification Code'}</button>
+                        </>
+                    )}
+                </form>
+                {!otpSent && onGuruLogin && <div className="mt-4 text-center"><button onClick={() => setShowGuruPin(true)} className="text-xs text-violet-400 hover:text-white transition-colors underline">Guru Login Shortcut</button></div>}
+            </>
+        )}
     </div>
   );
 
