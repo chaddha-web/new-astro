@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: false,
+      sourcemap: true,
       target: 'es2020',
       rollupOptions: {
         output: {

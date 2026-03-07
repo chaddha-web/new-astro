@@ -18,6 +18,7 @@ import ProfileModal from './components/Profile/ProfileModal';
 import Sidebar from './components/Layout/Sidebar';
 import HistoryModal from './components/Profile/HistoryModal';
 import FullScreenLoader from './components/Layout/FullScreenLoader';
+import NotFound from './components/Layout/NotFound';
 import { Type, Schema } from '@google/genai';
 
 const AstrologerDashboard = lazy(() => import('./components/Astrologer/AstrologerDashboard'));
@@ -198,8 +199,8 @@ export default function App() {
 
   useEffect(() => {
     refreshData();
-    const subProducts = subscribeToTable('products', () => fetchProducts().then(setProducts));
-    const subAstrologers = subscribeToTable('astrologers', () => fetchAstrologers().then(setAstrologers));
+    const subProducts = hasStarted ? subscribeToTable('products', () => fetchProducts().then(setProducts)) : null;
+    const subAstrologers = hasStarted ? subscribeToTable('astrologers', () => fetchAstrologers().then(setAstrologers)) : null;
     
     let subTransactions: any;
     let subUsers: any;
@@ -1212,7 +1213,11 @@ export default function App() {
                         <div className="text-center mb-8 mt-4"><h2 className="text-3xl font-serif text-white mb-2">{t.gurus}</h2><p className="text-mystic-300">Consult verified astrologers.</p></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">{astrologers.map(astro => (<AstroCard key={astro.id} astrologer={astro} onConnect={connectToAstrologer} connectedAstrologerId={userState.connectedAstrologerId}/>))}</div>
                     </div>
-                ) : ( <Shop products={products} onBuy={initiateProductPurchase} /> )}
+                ) : view === AppView.SHOP ? (
+                    <Shop products={products} onBuy={initiateProductPurchase} />
+                ) : (
+                    <NotFound />
+                )}
             </>
         )}
       </main>

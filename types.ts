@@ -160,7 +160,8 @@ export enum AppView {
   PROFILE = 'profile',
   ASTRO_DASHBOARD = 'astro_dashboard',
   ADMIN_DASHBOARD = 'admin_dashboard',
-  HOROSCOPE = 'horoscope'
+  HOROSCOPE = 'horoscope',
+  NOT_FOUND = 'not_found'
 }
 
 export interface HoroscopeData {
