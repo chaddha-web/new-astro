@@ -402,7 +402,7 @@ export const seedDatabase = async () => {
     try {
         const { count } = await supabase.from('products').select('*', { count: 'exact', head: true });
         if (count === 0) {
-            const p = MOCK_PRODUCTS.map(x => ({ name: x.name, category: x.category, price: x.price, description: x.description, benefits: x.benefits, image_url: x.imageUrl }));
+            const p = MOCK_PRODUCTS.map(x => ({ name: x.name, category: x.category, price: x.price, description: x.description, image_url: x.imageUrl }));
             await supabase.from('products').insert(p);
         }
         const { count: ac } = await supabase.from('astrologers').select('*', { count: 'exact', head: true });
@@ -468,7 +468,7 @@ export const fetchProducts = async (): Promise<Product[]> => {
 export const createProduct = async (product: Product): Promise<Product | null> => {
   console.log("⬆️ [DB Sending] createProduct:", product.name);
   if (!supabase) return product;
-  const payload = { name: product.name, category: product.category, price: product.price, description: product.description, benefits: product.benefits, image_url: product.imageUrl };
+  const payload = { name: product.name, category: product.category, price: product.price, description: product.description, image_url: product.imageUrl };
   let data, error;
   if (product.id && product.id.length > 10 && !product.id.startsWith('p')) { ({ data, error } = await supabase.from('products').update(payload).eq('id', product.id).select().single()); } 
   else { ({ data, error } = await supabase.from('products').insert([payload]).select().single()); }

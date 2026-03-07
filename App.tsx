@@ -1,6 +1,6 @@
 
 import { loadRazorpay } from './utils/razorpay';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Sender, Message, UserState, AppView, Astrologer, MessageType, CallState, Product, Earnings, Transaction, HoroscopeData, Language, CommunicationLog } from './types';
 import { INITIAL_DAILY_LIMIT, PREMIUM_DAILY_LIMIT, generateSystemInstruction, SUGGESTED_QUESTIONS, TOPIC_QUESTIONS, RAZORPAY_KEY_ID, TEST_RAZORPAY_KEY, TRANSLATIONS, MOCK_PRODUCTS, MOCK_ASTROLOGERS, formatDisplayName } from './constants';
 import { initializeChat, sendMessageToGemini, generateJsonContent } from './services/geminiService';
@@ -11,20 +11,21 @@ import StarBackground from './components/Layout/StarBackground';
 import MessageBubble from './components/Chat/MessageBubble';
 import ThinkingBubble from './components/Chat/ThinkingBubble';
 import AstroCard from './components/Marketplace/AstroCard';
-import AstrologerDashboard from './components/Astrologer/AstrologerDashboard';
 import CallInterface from './components/Call/CallInterface';
 import RatingModal from './components/Chat/RatingModal';
-import Shop from './components/Shop/Shop';
-import NatalChart from './components/Astrology/NatalChart';
-import LandingPage from './components/Layout/LandingPage';
 import UserOnboarding, { OnboardingData } from './components/Layout/UserOnboarding';
 import ProfileModal from './components/Profile/ProfileModal';
-import AdminDashboard from './components/Admin/AdminDashboard';
 import Sidebar from './components/Layout/Sidebar';
 import HistoryModal from './components/Profile/HistoryModal';
-import HoroscopeView from './components/Horoscope/HoroscopeView';
 import FullScreenLoader from './components/Layout/FullScreenLoader';
 import { Type, Schema } from '@google/genai';
+
+const AstrologerDashboard = lazy(() => import('./components/Astrologer/AstrologerDashboard'));
+const Shop = lazy(() => import('./components/Shop/Shop'));
+const NatalChart = lazy(() => import('./components/Astrology/NatalChart'));
+const LandingPage = lazy(() => import('./components/Layout/LandingPage'));
+const AdminDashboard = lazy(() => import('./components/Admin/AdminDashboard'));
+const HoroscopeView = lazy(() => import('./components/Horoscope/HoroscopeView'));
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -173,19 +174,24 @@ export default function App() {
               await seedDatabase();
             }
             
-            const [dbProducts, dbTransactions, dbAstrologers, dbUsers, dbLogs] = await Promise.all([
+            const [dbProducts, dbAstrologers] = await Promise.all([
                 fetchProducts(), 
-                fetchTransactions(), 
-                fetchAstrologers(),
-                fetchProfiles(),
-                fetchCommunicationLogs()
+                fetchAstrologers()
             ]);
             
             if (dbProducts) setProducts(dbProducts);
-            if (dbTransactions) setTransactions(dbTransactions);
             if (dbAstrologers) setAstrologers(dbAstrologers);
-            if (dbUsers) setUsers(dbUsers);
-            if (dbLogs) setCommLogs(dbLogs);
+            
+            if (hasStarted) {
+                const [dbTransactions, dbUsers, dbLogs] = await Promise.all([
+                    fetchTransactions(), 
+                    fetchProfiles(),
+                    fetchCommunicationLogs()
+                ]);
+                if (dbTransactions) setTransactions(dbTransactions);
+                if (dbUsers) setUsers(dbUsers);
+                if (dbLogs) setCommLogs(dbLogs);
+            }
             
         } catch (e) { console.error(e); } finally { setTimeout(() => setIsGlobalLoading(false), 800); }
   };
@@ -193,19 +199,26 @@ export default function App() {
   useEffect(() => {
     refreshData();
     const subProducts = subscribeToTable('products', () => fetchProducts().then(setProducts));
-    const subTransactions = subscribeToTable('transactions', () => fetchTransactions().then(setTransactions));
     const subAstrologers = subscribeToTable('astrologers', () => fetchAstrologers().then(setAstrologers));
-    const subUsers = subscribeToTable('profiles', () => fetchProfiles().then(setUsers));
-    const subLogs = subscribeToTable('communications', () => fetchCommunicationLogs().then(setCommLogs));
+    
+    let subTransactions: any;
+    let subUsers: any;
+    let subLogs: any;
+
+    if (hasStarted) {
+        subTransactions = subscribeToTable('transactions', () => fetchTransactions().then(setTransactions));
+        subUsers = subscribeToTable('profiles', () => fetchProfiles().then(setUsers));
+        subLogs = subscribeToTable('communications', () => fetchCommunicationLogs().then(setCommLogs));
+    }
 
     return () => { 
         subProducts?.unsubscribe(); 
-        subTransactions?.unsubscribe(); 
         subAstrologers?.unsubscribe(); 
+        subTransactions?.unsubscribe(); 
         subUsers?.unsubscribe();
         subLogs?.unsubscribe();
     };
-  }, []);
+  }, [hasStarted]);
 
   useEffect(() => {
       // Regenerate if view is Horoscope AND user has onboarded.
@@ -1079,8 +1092,9 @@ export default function App() {
   };
 
   if (isGlobalLoading) return <FullScreenLoader text={loadingText} />;
-  if (!hasStarted) return <LandingPage onSeekerEnter={handleSeekerEnter} onSeekerLogin={handleSeekerLogin} onVerifyCredentials={verifyUserCredentials} onGuruEnter={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} onAdminEnter={handleAdminEnter} />;
+  if (!hasStarted) return <Suspense fallback={<FullScreenLoader text="Loading..." />}><LandingPage onSeekerEnter={handleSeekerEnter} onSeekerLogin={handleSeekerLogin} onVerifyCredentials={verifyUserCredentials} onGuruEnter={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} onAdminEnter={handleAdminEnter} /></Suspense>;
   if (view === AppView.ADMIN_DASHBOARD) return (
+      <Suspense fallback={<FullScreenLoader text="Loading..." />}>
       <div className="relative min-h-screen">
           <StarBackground />
           <div className="relative z-10 h-screen">
@@ -1097,9 +1111,11 @@ export default function App() {
             />
           </div>
       </div>
+      </Suspense>
   );
 
   return (
+    <Suspense fallback={<FullScreenLoader text="Loading..." />}>
     <div className="relative min-h-screen font-sans text-mystic-100 flex flex-col bg-mystic-900 overflow-hidden">
       <StarBackground />
       {userState.hasOnboarded && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} user={userState} onNavigate={(v) => { if(v==='chart') setShowChartModal(true); else if (v === 'upgrade') { setPremiumModalReason('Upgrade Plan'); setShowPremiumModal(true); } else handleViewChange(v as AppView); setIsSidebarOpen(false); }} onOpenProfile={() => { setShowProfileModal(true); setIsSidebarOpen(false); }} onOpenHistory={openHistory} onLogout={handleLogout} onLanguageChange={handleLanguageChange} />}
@@ -1388,5 +1404,6 @@ export default function App() {
           </div>
       )}
     </div>
+    </Suspense>
   );
 }

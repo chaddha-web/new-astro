@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import StarBackground from './StarBackground';
 import { sendAuthOtp, verifyAuthOtp, resetUserPassword } from '../../services/dbService';
-import PrivacyPolicy from './PrivacyPolicy';
-import Terms from './Terms';
+
+const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
+const Terms = lazy(() => import('./Terms'));
 
 interface LandingPageProps {
   onSeekerEnter: () => void;
@@ -303,8 +304,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
   };
 
   // Sub-pages rendering
-  if (pageView === 'privacy') return <><StarBackground /><PrivacyPolicy onBack={() => setPageView('home')} /></>;
-  if (pageView === 'terms') return <><StarBackground /><Terms onBack={() => setPageView('home')} /></>;
+  if (pageView === 'privacy') return <Suspense fallback={<div className="min-h-screen bg-mystic-900" />}><StarBackground /><PrivacyPolicy onBack={() => setPageView('home')} /></Suspense>;
+  if (pageView === 'terms') return <Suspense fallback={<div className="min-h-screen bg-mystic-900" />}><StarBackground /><Terms onBack={() => setPageView('home')} /></Suspense>;
 
   return (
     <div className="relative min-h-screen flex flex-col bg-mystic-900 text-white font-sans selection:bg-gold-500/30 overflow-x-hidden">
