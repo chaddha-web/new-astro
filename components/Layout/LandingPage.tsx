@@ -367,6 +367,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         </div>
       </nav>
 
+      <main id="main-content" className="flex-1">
       {/* 2. HERO SECTION */}
       <section className="relative z-10 min-h-[90vh] flex flex-col items-center justify-center text-center px-6 py-20">
         <div className="mb-6 inline-block px-4 py-1.5 rounded-full bg-mystic-800/80 border border-white/10 backdrop-blur-sm">
@@ -494,7 +495,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                         </div>
                     </div>
                     <div className="flex justify-between items-center mb-6 text-sm">
-                        <div className="text-gold-400 font-medium">⭐ 4.9 <span className="text-mystic-500">| 1,240 sessions</span></div>
+                        <div className="text-gold-400 font-medium">⭐ 4.9 <span className="text-mystic-300">| 1,240 sessions</span></div>
                         <div className="text-green-400 font-medium flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online Now</div>
                     </div>
                     <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-black font-bold py-3 rounded-xl transition-colors">
@@ -516,14 +517,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-center">
                 {/* Card 1: Starter */}
                 <div className="bg-mystic-800/80 backdrop-blur-md border-2 border-gold-500 rounded-3xl p-8 relative transform lg:-translate-y-4 shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold-500 text-mystic-950 text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Most Popular</div>
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold-500 text-black text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Most Popular</div>
                     <h3 className="text-xl font-bold text-white mb-2">STARTER</h3>
                     <div className="text-4xl font-serif text-gold-400 mb-6">₹21 <span className="text-sm text-mystic-300 font-sans">one-time</span></div>
                     <ul className="space-y-4 mb-8 text-sm text-mystic-200">
                         <li className="flex items-center gap-2"><span>✓</span> 3 years access</li>
                         <li className="flex items-center gap-2"><span>✓</span> Daily AI horoscope</li>
                         <li className="flex items-center gap-2"><span>✓</span> 15 questions (3/day)</li>
-                        <li className="flex items-center gap-2 text-mystic-500"><span>✗</span> Live Guru calls</li>
+                        <li className="flex items-center gap-2 text-mystic-400"><span>✗</span> Live Guru calls</li>
                     </ul>
                     <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-black font-bold py-3 rounded-xl transition-colors">Start for ₹21</button>
                 </div>
@@ -566,7 +567,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 </div>
             </div>
             
-            <p className="text-center text-mystic-500 text-sm mt-8">
+            <p className="text-center text-mystic-300 text-sm mt-8">
                 Prices shown in INR. Auto-converts to your local currency at checkout: USD · EUR · AED · GBP
             </p>
         </div>
@@ -625,6 +626,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             </button>
         </div>
       </section>
+      </main>
 
       {/* 9. FOOTER */}
       <footer className="relative z-10 bg-mystic-950 pt-16 pb-8 border-t border-white/5">
@@ -661,7 +663,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 </ul>
             </div>
         </div>
-        <div className="text-center text-xs text-mystic-600 pt-8 border-t border-white/5">
+        <div className="text-center text-xs text-mystic-400 pt-8 border-t border-white/5">
             © 2024 Astro21. All rights reserved. {t.footerTagline}
         </div>
       </footer>
