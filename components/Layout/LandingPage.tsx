@@ -524,7 +524,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                         <li className="flex items-center gap-2"><span>✓</span> 3 years access</li>
                         <li className="flex items-center gap-2"><span>✓</span> Daily AI horoscope</li>
                         <li className="flex items-center gap-2"><span>✓</span> 15 questions (3/day)</li>
-                        <li className="flex items-center gap-2 text-mystic-400"><span>✗</span> Live Guru calls</li>
+                        <li className="flex items-center gap-2 text-mystic-300"><span>✗</span> Live Guru calls</li>
                     </ul>
                     <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-black font-bold py-3 rounded-xl transition-colors">Start for ₹21</button>
                 </div>
@@ -555,7 +555,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
 
                 {/* Card 4: Annual */}
                 <div className="bg-mystic-800/60 backdrop-blur-md border border-indigo-500/50 rounded-3xl p-8 relative shadow-[0_0_20px_rgba(99,102,241,0.1)]">
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Best Value</div>
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider px-4 py-1 rounded-full">Best Value</div>
                     <h3 className="text-xl font-bold text-white mb-2">ANNUAL</h3>
                     <div className="text-4xl font-serif text-white mb-6">₹1,149 <span className="text-sm text-mystic-300 font-sans">/ year</span></div>
                     <ul className="space-y-4 mb-8 text-sm text-mystic-200">
@@ -663,7 +663,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                 </ul>
             </div>
         </div>
-        <div className="text-center text-xs text-mystic-400 pt-8 border-t border-white/5">
+        <div className="text-center text-xs text-mystic-300 pt-8 border-t border-white/5">
             © 2024 Astro21. All rights reserved. {t.footerTagline}
         </div>
       </footer>
