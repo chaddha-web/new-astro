@@ -22,7 +22,6 @@ if (
   }
 } else {
   // Only warn if we are in a mode where we expect it, otherwise silent for offline demo
-  console.log("Running in offline mode (Supabase keys missing or invalid).");
 }
 
 export const supabase = supabaseInstance;
