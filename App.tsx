@@ -1146,10 +1146,10 @@ export default function App() {
               {userState.hasOnboarded && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} user={userState} onNavigate={(v) => { if(v==='chart') setShowChartModal(true); else if (v === 'upgrade') { setPremiumModalReason('Upgrade Plan'); setShowPremiumModal(true); } else handleViewChange(v as AppView); setIsSidebarOpen(false); }} onOpenProfile={() => { setShowProfileModal(true); setIsSidebarOpen(false); }} onOpenHistory={openHistory} onLogout={handleLogout} onLanguageChange={handleLanguageChange} />}
               {showHistoryModal && <HistoryModal transactions={transactions.filter(t => t.userId === userState.contact || t.userId === userState.id)} onClose={() => setShowHistoryModal(false)} initialTab={historyTab} />}
               {callState.isActive && <CallInterface partnerName={callState.partnerName} partnerImage={callState.partnerImage} callType={callState.type} onEndCall={handleCallEnd} channelName={callState.channelName || 'default'} />}
-              {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed top-24 right-4 z-[60] bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-full shadow-2xl border-2 border-orange-400 animate-in slide-in-from-top-4 duration-300">🚪 Exit Admin Mode</button>}
+              {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed top-4 right-4 z-[70] bg-orange-600 hover:bg-orange-500 text-white font-bold py-1.5 px-4 rounded-full shadow-2xl border border-orange-400 text-xs flex items-center gap-2"><span>🚪</span> Exit Admin</button>}
 
               {userState.hasOnboarded && (
-                  <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-800/98 backdrop-blur-2xl transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+                  <header className="sticky top-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-950 transition-all shadow-2xl">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-gold-400 hover:text-white transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg></button>
                         <div className="flex flex-col items-start gap-1">
@@ -1185,7 +1185,7 @@ export default function App() {
                   </header>
               )}
 
-              <main id="main-content" className={`relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden ${userState.hasOnboarded ? 'pt-28 md:pt-32' : ''}`}>
+              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden">
                 {!userState.hasOnboarded ? (
                     <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
                 ) : (
@@ -1195,15 +1195,15 @@ export default function App() {
                         ) : view === AppView.HOROSCOPE ? (
                             <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} onLanguageChange={handleLanguageChange} />
                         ) : view === AppView.CHAT ? (
-                            <div className="flex flex-col flex-1 animate-in fade-in duration-500 relative overflow-hidden">
-                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pb-48 pt-4 px-4 md:px-0 scroll-smooth">
+                            <div className="flex flex-col flex-1 animate-in fade-in duration-500 relative min-h-0">
+                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pt-4 px-4 md:px-0 scroll-smooth min-h-0">
                                     {messages.map((msg) => <MessageBubble key={msg.id} message={msg} onUnlock={handleUnlockMessage} onPay={(a) => handleGuruDakshina(a)} onAcceptCall={handleAcceptCall} onSubscribe={() => { setPremiumModalReason(''); setShowPremiumModal(true); }} onBuyProduct={initiateProductPurchase} userHasPremium={userState.isPremium || !!userState.isAdminImpersonating || userState.tier === 'member21'} userName={userState.name} language={userState.language || 'en'} astrologers={astrologers} />)}
                                     {isAiThinking && <ThinkingBubble />}
                                     <div ref={messagesEndRef} />
                                 </div>
-                                {showScrollButton && <button onClick={scrollToBottom} className="fixed bottom-36 right-6 md:right-[calc(50%-20px)] md:left-auto md:translate-x-full z-40 bg-mystic-800 p-3 rounded-full border border-gold-500/30 shadow-lg text-gold-400 hover:bg-mystic-700 transition-all animate-bounce">↓</button>}
-                                <div className="fixed bottom-0 left-0 w-full z-50 pointer-events-none">
-                                    <div className="max-w-5xl mx-auto relative px-4 pb-6 pt-4 bg-gradient-to-t from-mystic-900 via-mystic-900 to-transparent pointer-events-auto">
+                                {showScrollButton && <button onClick={scrollToBottom} className="absolute bottom-32 right-6 z-40 bg-mystic-800 p-3 rounded-full border border-gold-500/30 shadow-lg text-gold-400 hover:bg-mystic-700 transition-all animate-bounce">↓</button>}
+                                <div className="w-full z-40 bg-mystic-950 border-t border-white/5 shrink-0">
+                                    <div className="max-w-5xl mx-auto relative px-4 pb-10 pt-4">
                                         {!isAiThinking && !userState.connectedAstrologerId && (
                                             <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 pb-1">{currentSuggestions.map((q, i) => (<button key={i} onClick={() => handleSendMessage(q)} disabled={isAiThinking} className="whitespace-nowrap px-3 py-1.5 bg-mystic-800/80 hover:bg-gold-500/20 border border-mystic-600 rounded-full text-xs text-mystic-200 disabled:opacity-50 transition-colors">✨ {q}</button>))}</div>
                                         )}
@@ -1223,9 +1223,9 @@ export default function App() {
                                                 </button>
                                             ) : (
                                                 <>
-                                                    <button onMouseDown={startRecording} className={`p-2 transition-all rounded-full ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-mystic-400 hover:text-white'}`}><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg></button>
-                                                    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder={userState.connectedAstrologerId ? "Message Guru..." : t.typeMessage} disabled={isAiThinking} className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-mystic-400 px-2 py-2 font-sans text-lg outline-none disabled:opacity-50" />
-                                                    <button onClick={() => handleSendMessage()} disabled={!input.trim() || isAiThinking} className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white hover:shadow-lg disabled:opacity-50 transition-all transform hover:scale-105"><svg className="w-6 h-6 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></button>
+                                                    <button onMouseDown={startRecording} className={`p-2 transition-all rounded-full z-10 ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'text-mystic-400 hover:text-white'}`}><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg></button>
+                                                    <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder={userState.connectedAstrologerId ? "Message Guru..." : t.typeMessage} disabled={isAiThinking} className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-mystic-400 px-2 py-2 font-sans text-lg outline-none disabled:opacity-50 z-10" />
+                                                    <button onClick={() => handleSendMessage()} disabled={!input.trim() || isAiThinking} className="w-12 h-12 rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white hover:shadow-lg disabled:opacity-50 transition-all transform hover:scale-105 z-10"><svg className="w-6 h-6 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg></button>
                                                 </>
                                             )}
                                         </div>
