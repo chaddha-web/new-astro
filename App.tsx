@@ -1141,12 +1141,12 @@ export default function App() {
                 </div>
             </div>
           ) : (
-            <div className="relative h-screen font-sans text-mystic-100 flex flex-col bg-mystic-900 overflow-hidden">
+            <div className="relative h-[100dvh] font-sans text-mystic-100 flex flex-col bg-mystic-900 overflow-hidden">
               <StarBackground />
               {userState.hasOnboarded && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} user={userState} onNavigate={(v) => { if(v==='chart') setShowChartModal(true); else if (v === 'upgrade') { setPremiumModalReason('Upgrade Plan'); setShowPremiumModal(true); } else handleViewChange(v as AppView); setIsSidebarOpen(false); }} onOpenProfile={() => { setShowProfileModal(true); setIsSidebarOpen(false); }} onOpenHistory={openHistory} onLogout={handleLogout} onLanguageChange={handleLanguageChange} />}
               {showHistoryModal && <HistoryModal transactions={transactions.filter(t => t.userId === userState.contact || t.userId === userState.id)} onClose={() => setShowHistoryModal(false)} initialTab={historyTab} />}
               {callState.isActive && <CallInterface partnerName={callState.partnerName} partnerImage={callState.partnerImage} callType={callState.type} onEndCall={handleCallEnd} channelName={callState.channelName || 'default'} />}
-              {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed bottom-24 right-4 z-[60] bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-2xl border-2 border-orange-400 animate-bounce">🚪 Exit Admin Mode</button>}
+              {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed top-24 right-4 z-[60] bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-full shadow-2xl border-2 border-orange-400 animate-in slide-in-from-top-4 duration-300">🚪 Exit Admin Mode</button>}
 
               {userState.hasOnboarded && (
                   <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-800/98 backdrop-blur-2xl transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
@@ -1202,7 +1202,7 @@ export default function App() {
                                     <div ref={messagesEndRef} />
                                 </div>
                                 {showScrollButton && <button onClick={scrollToBottom} className="fixed bottom-36 right-6 md:right-[calc(50%-20px)] md:left-auto md:translate-x-full z-40 bg-mystic-800 p-3 rounded-full border border-gold-500/30 shadow-lg text-gold-400 hover:bg-mystic-700 transition-all animate-bounce">↓</button>}
-                                <div className="fixed bottom-0 left-0 w-full z-40 pointer-events-none">
+                                <div className="fixed bottom-0 left-0 w-full z-50 pointer-events-none">
                                     <div className="max-w-5xl mx-auto relative px-4 pb-6 pt-4 bg-gradient-to-t from-mystic-900 via-mystic-900 to-transparent pointer-events-auto">
                                         {!isAiThinking && !userState.connectedAstrologerId && (
                                             <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 pb-1">{currentSuggestions.map((q, i) => (<button key={i} onClick={() => handleSendMessage(q)} disabled={isAiThinking} className="whitespace-nowrap px-3 py-1.5 bg-mystic-800/80 hover:bg-gold-500/20 border border-mystic-600 rounded-full text-xs text-mystic-200 disabled:opacity-50 transition-colors">✨ {q}</button>))}</div>
