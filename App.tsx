@@ -22,6 +22,7 @@ import NotFound from './components/Layout/NotFound';
 import { Type, Schema } from '@google/genai';
 
 import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Lock, LogOut, Globe, Sparkles, MessageCircle } from 'lucide-react';
 import TalkToAstrologer from './components/SEO/TalkToAstrologer';
 import KundliPage from './components/SEO/KundliPage';
 import KundliMatching from './components/SEO/KundliMatching';
@@ -147,6 +148,31 @@ export default function App() {
   const [tipAmount, setTipAmount] = useState<string>('');
   const [showChartModal, setShowChartModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    const handleViewportChange = () => {
+      if (window.visualViewport && window.innerWidth < 768) {
+        const offset = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
+        setKeyboardOffset(Math.max(0, offset));
+      } else {
+        setKeyboardOffset(0);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+      handleViewportChange();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      }
+    };
+  }, []);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -1146,10 +1172,10 @@ export default function App() {
               {userState.hasOnboarded && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} user={userState} onNavigate={(v) => { if(v==='chart') setShowChartModal(true); else if (v === 'upgrade') { setPremiumModalReason('Upgrade Plan'); setShowPremiumModal(true); } else handleViewChange(v as AppView); setIsSidebarOpen(false); }} onOpenProfile={() => { setShowProfileModal(true); setIsSidebarOpen(false); }} onOpenHistory={openHistory} onLogout={handleLogout} onLanguageChange={handleLanguageChange} />}
               {showHistoryModal && <HistoryModal transactions={transactions.filter(t => t.userId === userState.contact || t.userId === userState.id)} onClose={() => setShowHistoryModal(false)} initialTab={historyTab} />}
               {callState.isActive && <CallInterface partnerName={callState.partnerName} partnerImage={callState.partnerImage} callType={callState.type} onEndCall={handleCallEnd} channelName={callState.channelName || 'default'} />}
-              {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed top-4 right-4 z-[70] bg-orange-600 hover:bg-orange-500 text-white font-bold py-1.5 px-4 rounded-full shadow-2xl border border-orange-400 text-xs flex items-center gap-2"><span>🚪</span> Exit Admin</button>}
+              {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed top-4 right-4 z-[70] bg-orange-600 hover:bg-orange-500 text-white font-bold py-1.5 px-4 rounded-full shadow-2xl border border-orange-400 text-xs flex items-center gap-2"><span><LogOut className="w-4 h-4" /></span> Exit Admin</button>}
 
               {userState.hasOnboarded && (
-                  <header className="sticky top-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-950 transition-all shadow-2xl">
+                  <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-950 transition-all shadow-2xl">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-gold-400 hover:text-white transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg></button>
                         <div className="flex flex-col items-start gap-1">
@@ -1176,7 +1202,7 @@ export default function App() {
                         <div className="hidden md:flex bg-white/5 rounded-full p-1 border border-white/10">
                             {[AppView.CHAT, AppView.HOROSCOPE, AppView.MARKETPLACE, AppView.SHOP].map((v) => (
                                 <button key={v} onClick={() => handleViewChange(v)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all relative ${view === v ? 'bg-mystic-100 text-mystic-900' : 'text-mystic-400 hover:text-white'}`}>
-                                    {userState.tier === 'member21' && (v === AppView.MARKETPLACE || v === AppView.SHOP) && <span className="absolute -top-1 -right-1 text-[8px]">🔒</span>}
+                                    {userState.tier === 'member21' && (v === AppView.MARKETPLACE || v === AppView.SHOP) && <span className="absolute -top-1 -right-1"><Lock className="w-3 h-3 text-mystic-400" /></span>}
                                     {v === AppView.HOROSCOPE ? 'Insights' : v === AppView.CHAT ? t.chat : v === AppView.MARKETPLACE ? t.gurus : t.shop}
                                 </button>
                             ))}
@@ -1185,7 +1211,7 @@ export default function App() {
                   </header>
               )}
 
-              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden">
+              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden pt-[72px] md:pt-[88px]">
                 {!userState.hasOnboarded ? (
                     <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
                 ) : (
@@ -1196,16 +1222,16 @@ export default function App() {
                             <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} onLanguageChange={handleLanguageChange} />
                         ) : view === AppView.CHAT ? (
                             <div className="flex flex-col flex-1 animate-in fade-in duration-500 relative min-h-0">
-                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pt-4 px-4 md:px-0 scroll-smooth min-h-0">
+                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pt-4 px-4 md:px-0 scroll-smooth min-h-0" style={{ paddingBottom: `calc(140px + ${keyboardOffset}px)` }}>
                                     {messages.map((msg) => <MessageBubble key={msg.id} message={msg} onUnlock={handleUnlockMessage} onPay={(a) => handleGuruDakshina(a)} onAcceptCall={handleAcceptCall} onSubscribe={() => { setPremiumModalReason(''); setShowPremiumModal(true); }} onBuyProduct={initiateProductPurchase} userHasPremium={userState.isPremium || !!userState.isAdminImpersonating || userState.tier === 'member21'} userName={userState.name} language={userState.language || 'en'} astrologers={astrologers} />)}
                                     {isAiThinking && <ThinkingBubble />}
                                     <div ref={messagesEndRef} />
                                 </div>
-                                {showScrollButton && <button onClick={scrollToBottom} className="absolute bottom-32 right-6 z-40 bg-mystic-800 p-3 rounded-full border border-gold-500/30 shadow-lg text-gold-400 hover:bg-mystic-700 transition-all animate-bounce">↓</button>}
-                                <div className="w-full z-40 bg-mystic-950 border-t border-white/5 shrink-0">
-                                    <div className="max-w-5xl mx-auto relative px-4 pb-10 pt-4">
+                                {showScrollButton && <button onClick={scrollToBottom} className="fixed right-6 z-40 bg-mystic-800 p-3 rounded-full border border-gold-500/30 shadow-lg text-gold-400 hover:bg-mystic-700 transition-all animate-bounce" style={{ bottom: `calc(140px + ${keyboardOffset}px)` }}>↓</button>}
+                                <div className="fixed left-0 right-0 z-40 bg-mystic-950 border-t border-white/5 transition-all duration-75" style={{ bottom: `${keyboardOffset}px` }}>
+                                    <div className="max-w-5xl mx-auto relative px-4 pb-4 pt-4">
                                         {!isAiThinking && !userState.connectedAstrologerId && (
-                                            <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 pb-1">{currentSuggestions.map((q, i) => (<button key={i} onClick={() => handleSendMessage(q)} disabled={isAiThinking} className="whitespace-nowrap px-3 py-1.5 bg-mystic-800/80 hover:bg-gold-500/20 border border-mystic-600 rounded-full text-xs text-mystic-200 disabled:opacity-50 transition-colors">✨ {q}</button>))}</div>
+                                            <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 pb-1">{currentSuggestions.map((q, i) => (<button key={i} onClick={() => handleSendMessage(q)} disabled={isAiThinking} className="whitespace-nowrap px-3 py-1.5 bg-mystic-800/80 hover:bg-gold-500/20 border border-mystic-600 rounded-full text-xs text-mystic-200 disabled:opacity-50 transition-colors flex items-center gap-1"><Sparkles className="w-3 h-3 text-gold-400" /> {q}</button>))}</div>
                                         )}
                                         <div className="relative flex items-center bg-mystic-800/80 backdrop-blur-xl border border-mystic-600/30 rounded-full p-2 shadow-2xl gap-2">
                                             {(userState.dailyQuestionsLeft <= 0 && !userState.connectedAstrologerId && !userState.isAdminImpersonating) ? (
@@ -1245,6 +1271,15 @@ export default function App() {
                     </>
                 )}
               </main>
+              {userState.hasOnboarded && view !== AppView.CHAT && (
+                  <button 
+                      onClick={() => handleViewChange(AppView.CHAT)}
+                      className="fixed right-6 z-50 bg-gradient-to-br from-violet-600 to-indigo-600 p-4 rounded-full shadow-lg border border-white/10 text-white hover:scale-105 transition-all"
+                      style={{ bottom: `calc(24px + ${keyboardOffset}px)` }}
+                  >
+                      <MessageCircle className="w-6 h-6" />
+                  </button>
+              )}
             </div>
           )
         } />
@@ -1253,7 +1288,7 @@ export default function App() {
       {showLanguageSelectionModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl animate-in fade-in">
               <div className="bg-mystic-900 border border-gold-500/50 p-8 rounded-3xl w-full max-w-md text-center shadow-[0_0_50px_rgba(234,179,8,0.2)]">
-                  <div className="text-4xl mb-4 animate-bounce">🌐</div>
+                  <div className="flex justify-center mb-4 animate-bounce"><Globe className="w-10 h-10 text-gold-400" /></div>
                   <h3 className="text-2xl font-serif text-white mb-2">Choose Your Language</h3>
                   <p className="text-mystic-300 text-sm mb-6">Receive your premium insights in your preferred language.</p>
                   

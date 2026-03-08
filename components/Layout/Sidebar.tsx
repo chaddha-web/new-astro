@@ -2,6 +2,7 @@
 import React from 'react';
 import { UserState, Language } from '../../types';
 import { formatDisplayName } from '../../constants';
+import { MessageCircle, Sparkles, User as UserIcon, ShoppingBag, Zap, Phone, Package, CreditCard, LogOut } from 'lucide-react';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -64,18 +65,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user, onNavigate, on
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
             <div className="px-3 mb-2 text-[10px] text-mystic-500 uppercase tracking-widest font-bold">Menu</div>
             
-            <SidebarItem icon="💬" label="Chat" onClick={() => onNavigate('chat')} />
-            <SidebarItem icon="🔮" label="Insights" onClick={() => onNavigate('horoscope')} />
-            <SidebarItem icon="🧘" label="Gurus" onClick={() => onNavigate('marketplace')} />
-            <SidebarItem icon="🛍️" label="Shop" onClick={() => onNavigate('shop')} />
-            <SidebarItem icon="⚡" label="Upgrade Plan" onClick={() => onNavigate('upgrade')} />
+            <SidebarItem icon={<MessageCircle size={18} />} label="Chat" onClick={() => onNavigate('chat')} />
+            <SidebarItem icon={<Sparkles size={18} />} label="Insights" onClick={() => onNavigate('horoscope')} />
+            <SidebarItem icon={<UserIcon size={18} />} label="Gurus" onClick={() => onNavigate('marketplace')} />
+            <SidebarItem icon={<ShoppingBag size={18} />} label="Shop" onClick={() => onNavigate('shop')} />
+            <SidebarItem icon={<Zap size={18} />} label="Upgrade Plan" onClick={() => onNavigate('upgrade')} />
             
             <div className="my-4 border-t border-white/5"></div>
             <div className="px-3 mb-2 text-[10px] text-mystic-500 uppercase tracking-widest font-bold">Payments & History</div>
             
-            <SidebarItem icon="📞" label="Call History" onClick={() => onOpenHistory('calls')} />
-            <SidebarItem icon="📦" label="My Purchases" onClick={() => onOpenHistory('purchases')} />
-            <SidebarItem icon="💳" label="All Transactions" onClick={() => onOpenHistory('all')} />
+            <SidebarItem icon={<Phone size={18} />} label="Call History" onClick={() => onOpenHistory('calls')} />
+            <SidebarItem icon={<Package size={18} />} label="My Purchases" onClick={() => onOpenHistory('purchases')} />
+            <SidebarItem icon={<CreditCard size={18} />} label="All Transactions" onClick={() => onOpenHistory('all')} />
 
             <div className="my-4 border-t border-white/5"></div>
             <div className="px-3 mb-3 text-[10px] text-mystic-500 uppercase tracking-widest font-bold">Preferred Language</div>
@@ -98,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user, onNavigate, on
                 onClick={onLogout}
                 className="w-full flex items-center justify-center gap-2 text-red-400 hover:text-white hover:bg-red-500/10 py-3 rounded-xl transition-all text-sm font-bold"
             >
-                <span>🚪</span> Logout
+                <LogOut size={16} /> Logout
             </button>
             <p className="text-center text-[10px] text-mystic-600 mt-4 font-mono">ASTRO-VASTU v1.3</p>
         </div>
@@ -107,12 +108,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, user, onNavigate, on
   );
 };
 
-const SidebarItem: React.FC<{ icon: string, label: string, onClick: () => void }> = ({ icon, label, onClick }) => (
+const SidebarItem: React.FC<{ icon: React.ReactNode, label: string, onClick: () => void }> = ({ icon, label, onClick }) => (
     <button 
         onClick={onClick}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-mystic-300 hover:bg-mystic-800 hover:text-white hover:pl-6 transition-all group"
     >
-        <span className="text-lg opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-transform">{icon}</span>
+        <span className="opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-transform flex items-center justify-center">{icon}</span>
         <span className="font-medium text-sm">{label}</span>
     </button>
 );

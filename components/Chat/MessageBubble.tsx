@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Message, Sender, MessageType, Product, Language, Astrologer } from '../../types';
 import { TRANSLATIONS, formatDisplayName } from '../../constants';
 import ProductCard from '../Shop/ProductCard';
+import { Sparkles, Video, Phone, HandHeart, Mic, Settings, Unlock, Tag, Star } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -91,7 +92,7 @@ const FormattedText: React.FC<{ text: string; isDrastic?: boolean }> = ({ text, 
 
         output.push(
           <div key={idx} className={`flex ${isBullet ? 'gap-2 ml-2' : ''} ${isDrastic ? 'text-gold-300 italic font-medium' : ''}`}>
-            {isBullet && <span className="text-gold-500 mt-1.5 text-[10px]">✦</span>}
+            {isBullet && <span className="text-gold-500 mt-1.5 flex items-center justify-center"><Star className="w-2 h-2 fill-current" /></span>}
             <p className={`leading-relaxed text-base ${isBullet ? 'flex-1' : ''}`}>
               {renderedContent}
             </p>
@@ -304,8 +305,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
                          </p>
                     </div>
                     <div className="p-5 w-full flex flex-col items-center gap-4">
-                         <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl border ${isEnded ? 'border-mystic-700 bg-mystic-800 text-mystic-500' : 'border-green-500/20 bg-mystic-800 text-white shadow-inner animate-pulse'}`}>
-                            {message.metadata?.callType === 'video' ? '📹' : '📞'}
+                         <div className={`w-14 h-14 rounded-full flex items-center justify-center border ${isEnded ? 'border-mystic-700 bg-mystic-800 text-mystic-500' : 'border-green-500/20 bg-mystic-800 text-white shadow-inner animate-pulse'}`}>
+                            {message.metadata?.callType === 'video' ? <Video className="w-6 h-6" /> : <Phone className="w-6 h-6" />}
                          </div>
                          <div className="text-center">
                             <h4 className={`font-bold text-xl leading-tight ${isEnded ? 'text-mystic-300' : 'text-white'}`}>
@@ -335,7 +336,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
     if (message.type === MessageType.PAYMENT_REQUEST) {
         return (
             <div className="bg-mystic-900/80 rounded-lg p-4 border border-gold-500/50 flex flex-col items-center gap-3 text-center">
-                <div className="text-2xl">🕉️</div>
+                <div className="text-gold-400"><HandHeart className="w-8 h-8" /></div>
                 <div>
                     <p className="text-sm font-bold text-gold-400">Dakshina Request</p>
                     <p className="text-xs text-mystic-300">Please offer dakshina to continue.</p>
@@ -353,7 +354,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
     if (message.type === MessageType.AUDIO && message.attachmentUrl) {
         return (
             <div className="bg-mystic-900/50 p-3 rounded-lg border border-white/10 min-w-[200px]">
-                <p className="text-xs text-mystic-400 mb-2 flex items-center gap-1">🎤 Voice Note</p>
+                <p className="text-xs text-mystic-400 mb-2 flex items-center gap-1"><Mic className="w-4 h-4" /> Voice Note</p>
                 <audio controls src={message.attachmentUrl} className="w-full h-8" />
             </div>
         );
@@ -386,10 +387,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
         ) : isAstro ? (
             <img src={astrologer?.imageUrl || 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80'} alt={`Vedic Astrologer ${astrologer?.name || 'Expert'}`} className="w-full h-full object-cover" />
         ) : message.sender === Sender.SYSTEM ? (
-            <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs">⚙️</div>
+            <div className="w-full h-full bg-gray-800 flex items-center justify-center text-gray-400"><Settings className="w-4 h-4" /></div>
         ) : (
-            <div className="w-full h-full bg-mystic-900 flex items-center justify-center text-lg">
-                🔮
+            <div className="w-full h-full bg-mystic-900 flex items-center justify-center text-gold-400">
+                <Sparkles className="w-5 h-5" />
             </div>
         )}
       </div>
@@ -421,7 +422,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
                 <>
                 <div className="mb-4">
                     <h4 className="text-xs font-bold text-mystic-400 uppercase tracking-widest mb-3 flex items-center gap-2 opacity-70">
-                        <span>✨</span> {t.celestialGuidance}
+                        <Sparkles className="w-4 h-4 text-gold-400" /> {t.celestialGuidance}
                     </h4>
                     
                     {/* Render with Typing Effect */}
@@ -516,8 +517,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
                     className="mt-4 -mx-5 -mb-2 bg-gradient-to-r from-mystic-900 to-mystic-950 border-t border-gold-500/20 py-3 px-5 rounded-b-2xl flex items-center justify-between cursor-pointer hover:bg-mystic-900 transition-colors group border-b border-white/5 animate-in slide-in-from-top-2"
                 >
                     <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gold-500/10 flex items-center justify-center text-lg border border-gold-500/30 group-hover:scale-110 transition-transform">
-                        🔓
+                    <div className="w-8 h-8 rounded-full bg-gold-500/10 flex items-center justify-center border border-gold-500/30 group-hover:scale-110 transition-transform">
+                        <Unlock className="w-4 h-4 text-gold-400" />
                     </div>
                     <div className="text-left">
                         <p className="text-xs font-bold text-gold-400 uppercase tracking-wider group-hover:text-gold-300">{t.unlock}</p>
@@ -535,7 +536,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onUnlock, onPay,
             <div className="animate-in slide-in-from-left-4 fade-in duration-500 mt-1">
                 <div className="bg-gradient-to-r from-gold-900/40 to-mystic-900/40 border border-gold-500/30 rounded-xl p-3 max-w-xs">
                     <p className="text-xs text-gold-400 font-bold uppercase tracking-widest mb-2 flex items-center gap-1">
-                        <span>🏷️</span> {t.recommendedRemedy}
+                        <Tag className="w-3 h-3" /> {t.recommendedRemedy}
                     </p>
                     {message.suggestedProducts.map(product => (
                         <div key={product.id} className="mb-2 last:mb-0">

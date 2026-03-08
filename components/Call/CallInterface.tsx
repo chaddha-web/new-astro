@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { IAgoraRTCClient, ICameraVideoTrack, IMicrophoneAudioTrack } from 'agora-rtc-sdk-ng';
 import { AGORA_APP_ID, AGORA_TEMP_TOKEN } from '../../constants';
+import { AlertTriangle } from 'lucide-react';
 
 interface CallInterfaceProps {
   partnerName: string;
@@ -229,7 +230,7 @@ const CallInterface: React.FC<CallInterfaceProps> = ({ partnerName, partnerImage
                  
                  {callStatus === 'connecting' && <p className="text-mystic-400 uppercase tracking-widest text-xs animate-pulse">Connecting to Channel...</p>}
                  {callStatus === 'connected' && remoteUsers.length === 0 && !isSimulation && <p className="text-mystic-400 text-sm animate-pulse">Waiting for remote stream...</p>}
-                 {isSimulation && callStatus === 'connected' && <p className="text-yellow-400 text-xs bg-yellow-900/30 px-2 py-1 rounded border border-yellow-500/20 mb-2">⚠ Demo Simulation Mode</p>}
+                 {isSimulation && callStatus === 'connected' && <p className="text-yellow-400 text-xs bg-yellow-900/30 px-2 py-1 rounded border border-yellow-500/20 mb-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Demo Simulation Mode</p>}
                  {callStatus === 'connected' && <p className="text-gold-400 font-mono text-xl mt-2">{formatTime(duration)}</p>}
                  {callStatus === 'ended' && <p className="text-red-500 text-3xl font-bold">Call Ended</p>}
             </div>

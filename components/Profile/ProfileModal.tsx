@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserState } from '../../types';
+import { X } from 'lucide-react';
 
 interface ProfileModalProps {
   user: UserState;
@@ -27,7 +28,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ user, onSave, onClose }) =>
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
       <div className="bg-mystic-800 border border-gold-500/30 p-6 rounded-3xl max-w-md w-full relative shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 text-mystic-500 hover:text-white">✕</button>
+        <button onClick={onClose} className="absolute top-4 right-4 text-mystic-500 hover:text-white"><X className="w-5 h-5" /></button>
         
         <h3 className="text-2xl font-serif text-white mb-6 text-center">Edit Profile</h3>
         

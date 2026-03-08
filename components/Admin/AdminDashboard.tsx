@@ -4,6 +4,7 @@ import { Product, Transaction, SubscriptionTier, Astrologer, CommunicationLog, M
 import { DEFAULT_SUBSCRIPTION_TIERS, AVAILABLE_FEATURES } from '../../constants';
 import { saveAstrologer, deleteAstrologer, updateProfile, createProduct, deleteProductFromDb, fetchUsageStats, fetchAdminPayoutRequests, updatePayoutStatus, fetchAllUsageLogs, flushAllInsights } from '../../services/dbService';
 import { decryptAndDecompress } from '../../services/securityService';
+import { DollarSign, Users, UserCheck, Crown, Radio, Sparkles, Shield, RefreshCw, BarChart, Tag, Settings, Pencil, MessageCircle, UserSearch, Star, Landmark, Trash2, X, Phone, Package, CreditCard } from 'lucide-react';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -188,26 +189,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="space-y-6 animate-in fade-in">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div className="bg-gradient-to-br from-mystic-800 to-mystic-900 p-6 rounded-2xl border border-gold-500/30 shadow-lg relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl group-hover:scale-110 transition-transform">💰</div>
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><DollarSign className="w-16 h-16" /></div>
                       <h3 className="text-gold-400 uppercase tracking-widest text-xs font-bold mb-2">Total Revenue</h3>
                       <p className="text-3xl font-serif text-white font-bold">₹{totalRevenue.toLocaleString()}</p>
                       <div className="w-full bg-mystic-950 h-1 rounded-full mt-4 overflow-hidden"><div className="bg-gold-500 h-full" style={{ width: '100%' }}></div></div>
                   </div>
                   
                   <div className="bg-gradient-to-br from-mystic-800 to-mystic-900 p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">👥</div>
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><Users className="w-16 h-16" /></div>
                       <h3 className="text-mystic-400 uppercase tracking-widest text-xs font-bold mb-2">Total Seekers</h3>
                       <p className="text-3xl font-serif text-white font-bold">{users.length}</p>
                   </div>
 
                    <div className="bg-gradient-to-br from-mystic-800 to-mystic-900 p-6 rounded-2xl border border-white/5 shadow-lg relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">🧘</div>
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><UserCheck className="w-16 h-16" /></div>
                       <h3 className="text-mystic-400 uppercase tracking-widest text-xs font-bold mb-2">Active Gurus</h3>
                       <p className="text-3xl font-serif text-white font-bold">{astrologers.filter(a => a.isOnline).length} / {astrologers.length}</p>
                   </div>
 
                   <div className="bg-gradient-to-br from-indigo-900 to-mystic-900 p-6 rounded-2xl border border-indigo-500/30 shadow-lg relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl">👑</div>
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><Crown className="w-16 h-16" /></div>
                       <h3 className="text-indigo-300 uppercase tracking-widest text-xs font-bold mb-2">Members</h3>
                       <div className="flex gap-4">
                           <div>
@@ -225,11 +226,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               {/* API Monitor Section */}
               <div className="bg-mystic-900 border border-indigo-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-5 text-9xl">📡</div>
+                  <div className="absolute top-0 right-0 p-8 opacity-5"><Radio className="w-32 h-32" /></div>
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                       <div className="space-y-2">
                           <h3 className="text-indigo-400 font-bold uppercase tracking-widest text-sm flex items-center gap-2">
-                              <span>🔮</span> Cosmic Engine Monitor
+                              <Sparkles className="w-4 h-4" /> Cosmic Engine Monitor
                           </h3>
                           <p className="text-xs text-mystic-400">Real-time usage tracking from Supabase (usage_logs)</p>
                       </div>
@@ -268,11 +269,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   return (
     <div className="flex flex-col h-full bg-mystic-950 text-white overflow-hidden">
         <header className="bg-mystic-900/90 backdrop-blur-md border-b border-gold-500/20 p-4 flex justify-between items-center shrink-0 z-20">
-            <h1 className="text-xl md:text-2xl font-serif text-gold-400 font-bold flex items-center gap-3"><span className="text-2xl">🛡️</span> Admin Panel</h1>
+            <h1 className="text-xl md:text-2xl font-serif text-gold-400 font-bold flex items-center gap-3"><Shield className="w-6 h-6" /> Admin Panel</h1>
             <div className="flex items-center gap-3">
                 {onRefresh && (
                     <button onClick={onRefresh} className="bg-white/5 hover:bg-white/10 text-mystic-300 border border-white/10 px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2">
-                        <span>↻</span> Refresh
+                        <RefreshCw className="w-4 h-4" /> Refresh
                     </button>
                 )}
                 <button onClick={onLogout} className="bg-red-500/10 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition-all">Logout</button>
@@ -282,18 +283,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="flex flex-1 overflow-hidden">
             <aside className="w-20 md:w-64 bg-mystic-900/50 border-r border-white/5 p-4 flex flex-col gap-2 shrink-0 overflow-y-auto">
                 {[
-                    { id: 'overview', icon: '📊', label: 'Overview' },
-                    { id: 'users', icon: '👥', label: 'Seekers' },
-                    { id: 'gurus', icon: '🧘', label: 'Gurus' },
-                    { id: 'shop', icon: '🏷️', label: 'Shop Manager' },
-                    { id: 'communications', icon: '📡', label: 'Logs' },
-                    { id: 'usage', icon: '🔮', label: 'API Usage' },
-                    { id: 'finance', icon: '💰', label: 'Financials' },
-                    { id: 'subscriptions', icon: '✨', label: 'Subscriptions' },
-                    { id: 'settings', icon: '⚙️', label: 'Settings' }
+                    { id: 'overview', icon: <BarChart className="w-5 h-5" />, label: 'Overview' },
+                    { id: 'users', icon: <Users className="w-5 h-5" />, label: 'Seekers' },
+                    { id: 'gurus', icon: <UserCheck className="w-5 h-5" />, label: 'Gurus' },
+                    { id: 'shop', icon: <Tag className="w-5 h-5" />, label: 'Shop Manager' },
+                    { id: 'communications', icon: <Radio className="w-5 h-5" />, label: 'Logs' },
+                    { id: 'usage', icon: <Sparkles className="w-5 h-5" />, label: 'API Usage' },
+                    { id: 'finance', icon: <DollarSign className="w-5 h-5" />, label: 'Financials' },
+                    { id: 'subscriptions', icon: <Sparkles className="w-5 h-5" />, label: 'Subscriptions' },
+                    { id: 'settings', icon: <Settings className="w-5 h-5" />, label: 'Settings' }
                 ].map(item => (
                     <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`text-left p-3 rounded-xl flex items-center justify-center md:justify-start gap-3 transition-all ${activeTab === item.id ? 'bg-gold-500 text-mystic-900 font-bold shadow-lg shadow-gold-500/20' : 'text-mystic-400 hover:bg-white/5 hover:text-white'}`}>
-                        <span className="text-xl">{item.icon}</span><span className="hidden md:inline">{item.label}</span>
+                        <span className="flex items-center justify-center w-6 h-6">{item.icon}</span><span className="hidden md:inline">{item.label}</span>
                     </button>
                 ))}
             </aside>
@@ -372,9 +373,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center gap-2">
-                                                        <button onClick={() => handleEditUser(user)} className="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg text-xs transition-colors border border-white/5" title="Edit Profile">✏️</button>
-                                                        <button onClick={() => handleViewUserChat(user)} className="bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 p-2 rounded-lg text-xs transition-colors border border-violet-500/20" title="View Chat History">💬</button>
-                                                        <button onClick={() => onImpersonate(user)} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 p-2 rounded-lg text-xs transition-colors border border-orange-500/20" title="Login As User">🕵️</button>
+                                                        <button onClick={() => handleEditUser(user)} className="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg text-xs transition-colors border border-white/5" title="Edit Profile"><Pencil className="w-4 h-4" /></button>
+                                                        <button onClick={() => handleViewUserChat(user)} className="bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 p-2 rounded-lg text-xs transition-colors border border-violet-500/20" title="View Chat History"><MessageCircle className="w-4 h-4" /></button>
+                                                        <button onClick={() => onImpersonate(user)} className="bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 p-2 rounded-lg text-xs transition-colors border border-orange-500/20" title="Login As User"><UserSearch className="w-4 h-4" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -419,7 +420,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                                 <td className="px-6 py-4 text-mystic-300">{a.specialty}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-1 text-gold-400 font-bold">
-                                                        <span>★</span> {a.rating} <span className="text-mystic-500 text-xs font-normal">({a.reviews})</span>
+                                                        <Star className="w-3 h-3 fill-current" /> {a.rating} <span className="text-mystic-500 text-xs font-normal">({a.reviews})</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-white font-mono">₹{a.pricePerMin}/min</td>
@@ -608,7 +609,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         {/* Payout Requests Section */}
                         <div>
                             <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
-                                <span>🏦</span> Payout Requests
+                                <Landmark className="w-6 h-6" /> Payout Requests
                             </h3>
                             <div className="bg-mystic-900/50 border border-white/10 rounded-xl overflow-hidden shadow-xl">
                                 <table className="w-full text-sm text-left">
@@ -692,7 +693,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 {activeTab === 'settings' && (
                     <div className="animate-in fade-in space-y-8">
                         <h3 className="text-xl font-bold mb-4 text-white flex items-center gap-2">
-                            <span>⚙️</span> System Settings
+                            <Settings className="w-6 h-6" /> System Settings
                         </h3>
                         
                         <div className="bg-mystic-900/50 border border-white/10 rounded-xl p-6 shadow-xl">
@@ -705,7 +706,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                 onClick={handleRenewInsights}
                                 className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-lg shadow-lg transition-colors flex items-center gap-2 text-sm"
                             >
-                                <span>🗑️</span> Clear All Cached Insights
+                                <Trash2 className="w-4 h-4" /> Clear All Cached Insights
                             </button>
                         </div>
                     </div>
@@ -768,7 +769,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         
         {isProductModalOpen && editingProduct && ( <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-mystic-800 p-6 rounded-2xl w-full max-w-md"><h3 className="text-white font-bold mb-4">Edit Product</h3><input value={editingProduct.name} onChange={e=>setEditingProduct({...editingProduct, name:e.target.value})} className="w-full bg-mystic-900 border border-white/10 p-2 mb-2 rounded text-white" placeholder="Name"/><input type="number" value={editingProduct.price} onChange={e=>setEditingProduct({...editingProduct, price:parseInt(e.target.value)})} className="w-full bg-mystic-900 border border-white/10 p-2 mb-4 rounded text-white" placeholder="Price"/><button onClick={saveProduct} className="w-full bg-gold-500 hover:bg-gold-400 p-2 rounded text-black font-bold transition-colors">Save</button></div></div> )}
         {isAstroModalOpen && editingAstro && ( <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"><div className="bg-mystic-800 p-6 rounded-2xl w-full max-w-md"><h3 className="text-white font-bold mb-4">Edit Guru</h3><input value={editingAstro.name} onChange={e=>setEditingAstro({...editingAstro, name:e.target.value})} className="w-full bg-mystic-900 border border-white/10 p-2 mb-2 rounded text-white" placeholder="Name"/><button onClick={saveAstro} className="w-full bg-gold-500 hover:bg-gold-400 p-2 rounded text-black font-bold transition-colors">Save</button></div></div> )}
-        {isChatReviewOpen && viewingChatUser && ( <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"><div className="bg-mystic-900 w-full max-w-lg h-[80vh] flex flex-col rounded-2xl overflow-hidden border border-white/10"><div className="p-4 bg-mystic-800 flex justify-between items-center"><h3 className="font-bold text-white">Chat: {viewingChatUser.name}</h3><button onClick={()=>setIsChatReviewOpen(false)} className="text-white hover:text-gold-400">✕</button></div><div className="flex-1 overflow-y-auto p-4 bg-black/20">{userChatHistory.length === 0 ? <p className="text-mystic-500 text-center italic mt-10">No chat history found.</p> : userChatHistory.map((m,i)=>(<div key={i} className="mb-3 text-sm"><span className={`${m.sender === Sender.USER ? 'text-green-400' : 'text-gold-400'} font-bold uppercase text-xs`}>{m.sender}</span><div className="bg-white/5 p-2 rounded mt-1 text-mystic-200">{m.text}</div></div>))}</div></div></div> )}
+        {isChatReviewOpen && viewingChatUser && ( <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"><div className="bg-mystic-900 w-full max-w-lg h-[80vh] flex flex-col rounded-2xl overflow-hidden border border-white/10"><div className="p-4 bg-mystic-800 flex justify-between items-center"><h3 className="font-bold text-white">Chat: {viewingChatUser.name}</h3><button onClick={()=>setIsChatReviewOpen(false)} className="text-white hover:text-gold-400"><X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto p-4 bg-black/20">{userChatHistory.length === 0 ? <p className="text-mystic-500 text-center italic mt-10">No chat history found.</p> : userChatHistory.map((m,i)=>(<div key={i} className="mb-3 text-sm"><span className={`${m.sender === Sender.USER ? 'text-green-400' : 'text-gold-400'} font-bold uppercase text-xs`}>{m.sender}</span><div className="bg-white/5 p-2 rounded mt-1 text-mystic-200">{m.text}</div></div>))}</div></div></div> )}
     </div>
   );
 };

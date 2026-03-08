@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Product } from '../../types';
 import ProductCard from './ProductCard';
+import { Search } from 'lucide-react';
 
 interface ShopProps {
   products: Product[];
@@ -77,7 +78,7 @@ const Shop: React.FC<ShopProps> = ({ products, onBuy }) => {
             ))}
             {filteredProducts.length === 0 && (
                 <div className="col-span-full text-center text-mystic-500 py-10 flex flex-col items-center">
-                    <span className="text-4xl mb-2 opacity-50">🔍</span>
+                    <Search className="w-10 h-10 text-mystic-500 mb-2 opacity-50" />
                     <p>No items found matching your search.</p>
                 </div>
             )}

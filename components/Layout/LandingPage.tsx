@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import StarBackground from './StarBackground';
 import { sendAuthOtp, verifyAuthOtp, resetUserPassword } from '../../services/dbService';
+import { Sparkles, Globe, Star, Lock, Bot, MessageCircleQuestion, Calendar, HeartHandshake, Moon, Hand, Gem, Flower2 } from 'lucide-react';
 
 const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
 const Terms = lazy(() => import('./Terms'));
@@ -343,7 +344,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
       <nav className="sticky top-0 z-50 bg-mystic-800/60 backdrop-blur-md border-b border-gold-500/20 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
             <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-900 rounded-full flex items-center justify-center text-xl shadow-[0_0_15px_rgba(124,58,237,0.5)] border border-white/20">
-                🔮
+                <Sparkles className="w-5 h-5 text-white" />
             </div>
             <span className="text-2xl font-serif font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-gold-200 to-mystic-300">
                 Astro21
@@ -355,7 +356,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                     onClick={() => setShowLangDropdown(!showLangDropdown)}
                     className="flex items-center gap-2 text-sm font-bold text-mystic-300 hover:text-white transition-colors"
                 >
-                    🌐 {lang.toUpperCase()} ▾
+                    <Globe className="w-4 h-4" /> {lang.toUpperCase()} ▾
                 </button>
                 {showLangDropdown && (
                     <div className="absolute right-0 mt-2 w-40 bg-mystic-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
@@ -387,7 +388,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
       {/* 2. HERO SECTION */}
       <section className="relative z-10 min-h-[90vh] flex flex-col items-center justify-center text-center px-6 py-20">
         <div className="mb-6 inline-block px-4 py-1.5 rounded-full bg-mystic-800/80 border border-white/10 backdrop-blur-sm">
-            <span className="text-xs font-bold tracking-widest text-gold-400 uppercase">🌟 INDIA'S #1 AI ASTROLOGY PLATFORM</span>
+            <span className="text-xs font-bold tracking-widest text-gold-400 uppercase flex items-center gap-1"><Star className="w-3 h-3" /> INDIA'S #1 AI ASTROLOGY PLATFORM</span>
         </div>
         
         <h1 className="text-5xl md:text-7xl lg:text-8xl font-serif font-bold text-white leading-[1.1] mb-6 drop-shadow-lg">
@@ -435,9 +436,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
         </button>
 
         <div className="flex flex-wrap justify-center gap-4 md:gap-8 text-xs md:text-sm font-medium text-white/90">
-            <span className="flex items-center gap-2">🔒 End-to-End Encrypted</span>
-            <span className="flex items-center gap-2">✨ 100% Private</span>
-            <span className="flex items-center gap-2">⭐ Trusted by 10,000+ Seekers</span>
+            <span className="flex items-center gap-2"><Lock className="w-4 h-4" /> End-to-End Encrypted</span>
+            <span className="flex items-center gap-2"><Sparkles className="w-4 h-4" /> 100% Private</span>
+            <span className="flex items-center gap-2"><Star className="w-4 h-4 text-gold-400" /> Trusted by 10,000+ Seekers</span>
         </div>
       </section>
 
@@ -447,17 +448,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             <h2 className="text-3xl md:text-5xl font-serif text-center text-white mb-16">{t.whatYouGetHeading}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="bg-mystic-800/60 backdrop-blur-md border border-white/10 rounded-3xl p-8 hover:border-gold-500/30 transition-colors">
-                    <div className="text-4xl mb-6">🤖</div>
+                    <div className="mb-6"><Bot className="w-10 h-10 text-gold-400" /></div>
                     <h3 className="text-xl font-serif font-bold text-white mb-3">AI Daily Horoscope</h3>
                     <p className="text-mystic-300 leading-relaxed">Personalized to your exact birth chart. Every single day.</p>
                 </div>
                 <div className="bg-mystic-800/60 backdrop-blur-md border border-white/10 rounded-3xl p-8 hover:border-gold-500/30 transition-colors">
-                    <div className="text-4xl mb-6">❓</div>
+                    <div className="mb-6"><MessageCircleQuestion className="w-10 h-10 text-gold-400" /></div>
                     <h3 className="text-xl font-serif font-bold text-white mb-3">15 Personal Questions</h3>
                     <p className="text-mystic-300 leading-relaxed">3 questions a day. Ask what truly matters to you.</p>
                 </div>
                 <div className="bg-mystic-800/60 backdrop-blur-md border border-white/10 rounded-3xl p-8 hover:border-gold-500/30 transition-colors">
-                    <div className="text-4xl mb-6">📅</div>
+                    <div className="mb-6"><Calendar className="w-10 h-10 text-gold-400" /></div>
                     <h3 className="text-xl font-serif font-bold text-white mb-3">3 Years of Guidance</h3>
                     <p className="text-mystic-300 leading-relaxed">Not a subscription. A lifetime companion.</p>
                 </div>
@@ -474,15 +475,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
-                    { icon: '🔮', name: 'Kundli Generation', desc: 'Your birth chart, in seconds', status: 'Available', path: '/kundli' },
-                    { icon: '💑', name: 'Kundli Matching', desc: 'Vedic compatibility analysis', status: 'Available', path: '/kundli-matching' },
-                    { icon: '🌙', name: 'Natal Chart', desc: 'Western astrology chart', status: 'Available', path: '/natal-chart' },
-                    { icon: '🖐️', name: 'Palm Reading', desc: 'AI-powered palmistry', status: 'Available', path: '/palm-reading' },
-                    { icon: '💎', name: 'Gemstones & Remedies', desc: 'Authentic, Guru-recommended', status: 'Available', path: '/gemstones' },
-                    { icon: '🙏', name: 'Live Digital Poojas', desc: 'Book a pooja, anytime', status: 'Available', path: '/poojas' }
+                    { icon: <Sparkles className="w-8 h-8 text-gold-400" />, name: 'Kundli Generation', desc: 'Your birth chart, in seconds', status: 'Available', path: '/kundli' },
+                    { icon: <HeartHandshake className="w-8 h-8 text-gold-400" />, name: 'Kundli Matching', desc: 'Vedic compatibility analysis', status: 'Available', path: '/kundli-matching' },
+                    { icon: <Moon className="w-8 h-8 text-gold-400" />, name: 'Natal Chart', desc: 'Western astrology chart', status: 'Available', path: '/natal-chart' },
+                    { icon: <Hand className="w-8 h-8 text-gold-400" />, name: 'Palm Reading', desc: 'AI-powered palmistry', status: 'Available', path: '/palm-reading' },
+                    { icon: <Gem className="w-8 h-8 text-gold-400" />, name: 'Gemstones & Remedies', desc: 'Authentic, Guru-recommended', status: 'Available', path: '/gemstones' },
+                    { icon: <Flower2 className="w-8 h-8 text-gold-400" />, name: 'Live Digital Poojas', desc: 'Book a pooja, anytime', status: 'Available', path: '/poojas' }
                 ].map((mod, i) => (
                     <Link key={i} to={mod.path} className="bg-mystic-800/40 border border-white/5 rounded-2xl p-6 flex items-start gap-4 hover:bg-mystic-800/80 transition-colors">
-                        <div className="text-3xl">{mod.icon}</div>
+                        <div>{mod.icon}</div>
                         <div>
                             <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-bold text-white">{mod.name}</h3>
@@ -521,7 +522,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSeekerEnter, onSeekerLogin,
                         </div>
                     </div>
                     <div className="flex justify-between items-center mb-6 text-sm">
-                        <div className="text-gold-400 font-medium">⭐ 4.9 <span className="text-mystic-300">| 1,240 sessions</span></div>
+                        <div className="text-gold-400 font-medium flex items-center gap-1"><Star className="w-4 h-4 fill-current" /> 4.9 <span className="text-mystic-300">| 1,240 sessions</span></div>
                         <div className="text-green-400 font-medium flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online Now</div>
                     </div>
                     <button onClick={onSeekerEnter} className="w-full bg-gold-500 hover:bg-gold-400 text-black font-bold py-3 rounded-xl transition-colors">

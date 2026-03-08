@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserState, HoroscopeData, Language } from '../../types';
 import { generateJsonContent } from '../../services/geminiService';
 import { Type, Schema } from '@google/genai';
+import { Sparkles, CheckCircle, XCircle, ChevronRight, Square, Calendar, Moon, Telescope, Lock } from 'lucide-react';
 
 interface HoroscopeViewProps {
   user: UserState;
@@ -98,7 +99,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
   const renderDaily = () => (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="bg-gradient-to-r from-mystic-800 to-mystic-900 border border-gold-500/30 rounded-2xl p-6 relative overflow-hidden shadow-lg print-content">
-              <div className="absolute top-0 right-0 p-4 opacity-5 text-9xl no-print">✨</div>
+              <div className="absolute top-0 right-0 p-4 opacity-5 no-print"><Sparkles className="w-32 h-32" /></div>
               <div className="flex justify-between items-start mb-2">
                 <div>
                     <h3 className="text-xl font-serif text-white">Daily Cosmic Rhythm</h3>
@@ -132,21 +133,21 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-4">
-                            <h4 className="text-green-400 font-bold uppercase tracking-widest text-xs mb-3 flex items-center gap-2"><span>✅</span> Do's</h4>
+                            <h4 className="text-green-400 font-bold uppercase tracking-widest text-xs mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Do's</h4>
                             <ul className="space-y-2">
                                 {Array.isArray(horoscopeData.daily.dos) && horoscopeData.daily.dos.map((item, i) => (
                                     <li key={i} className="text-sm text-mystic-200 flex items-start gap-2">
-                                        <span className="text-green-500 mt-1 text-[10px]">▶</span> {item}
+                                        <span className="text-green-500 mt-1"><ChevronRight className="w-3 h-3" /></span> {item}
                                     </li>
                                 ))}
                             </ul>
                         </div>
                         <div className="bg-red-900/20 border border-red-500/30 rounded-xl p-4">
-                            <h4 className="text-red-400 font-bold uppercase tracking-widest text-xs mb-3 flex items-center gap-2"><span>❌</span> Don'ts</h4>
+                            <h4 className="text-red-400 font-bold uppercase tracking-widest text-xs mb-3 flex items-center gap-2"><XCircle className="w-4 h-4" /> Don'ts</h4>
                             <ul className="space-y-2">
                                 {Array.isArray(horoscopeData.daily.donts) && horoscopeData.daily.donts.map((item, i) => (
                                     <li key={i} className="text-sm text-mystic-200 flex items-start gap-2">
-                                        <span className="text-red-500 mt-1 text-[10px]">■</span> {item}
+                                        <span className="text-red-500 mt-1"><Square className="w-3 h-3 fill-current" /></span> {item}
                                     </li>
                                 ))}
                             </ul>
@@ -182,10 +183,10 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
       return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
             <div className="bg-mystic-800/60 border border-white/10 rounded-2xl p-8 shadow-xl relative overflow-hidden min-h-[400px] print-content">
-                <div className="absolute top-0 right-0 p-4 opacity-5 text-9xl no-print">{type === 'weekly' ? '📅' : '🌑'}</div>
+                <div className="absolute top-0 right-0 p-4 opacity-5 no-print">{type === 'weekly' ? <Calendar className="w-32 h-32" /> : <Moon className="w-32 h-32" />}</div>
                 <div className="relative z-10">
                     <h3 className="text-2xl font-serif text-gold-400 mb-2 flex items-center gap-3">
-                        <span>{type === 'weekly' ? '🔭' : '🔮'}</span> 
+                        {type === 'weekly' ? <Telescope className="w-6 h-6" /> : <Sparkles className="w-6 h-6" />} 
                         {type === 'weekly' ? 'Weekly Transit Analysis' : 'Annual Yearbook'}
                     </h3>
                     <p className="text-sm text-mystic-400 font-mono uppercase mb-6 border-b border-white/10 pb-4 inline-block">
@@ -222,7 +223,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
                                     disabled={isGeneratingPdf}
                                     className={`text-xs font-bold px-6 py-3 rounded-full border transition-all flex items-center gap-2 shadow-lg ${hasAccess ? 'bg-gold-500 text-black hover:bg-gold-400 border-gold-500 shadow-gold-500/20' : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'}`}
                                 >
-                                    {!hasAccess && <span>🔒</span>}
+                                    {!hasAccess && <Lock className="w-4 h-4" />}
                                     {isGeneratingPdf 
                                         ? 'Preparing Print...' 
                                         : type === 'weekly' 

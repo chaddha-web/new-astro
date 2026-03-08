@@ -1,5 +1,6 @@
 import React from 'react';
 import { Astrologer } from '../../types';
+import { Star } from 'lucide-react';
 
 interface AstroCardProps {
   astrologer: Astrologer;
@@ -39,7 +40,7 @@ const AstroCard: React.FC<AstroCardProps> = ({ astrologer, onConnect, connectedA
                 {astrologer.name}
             </h3>
             <div className="flex items-center text-gold-400 text-sm">
-                <span>★</span>
+                <Star className="w-3 h-3 fill-current" />
                 <span className="ml-1 font-bold">{astrologer.rating}</span>
                 <span className="text-mystic-400 text-xs ml-1">({astrologer.reviews})</span>
             </div>

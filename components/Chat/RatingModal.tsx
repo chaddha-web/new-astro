@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Star } from 'lucide-react';
 
 interface RatingModalProps {
   guruName: string;
@@ -32,8 +33,8 @@ const RatingModal: React.FC<RatingModalProps> = ({ guruName, guruImage, onSubmit
               onClick={() => setRating(star)}
               className="focus:outline-none transition-transform hover:scale-110"
             >
-              <span className={`text-3xl ${star <= (hoveredRating || rating) ? 'text-gold-400' : 'text-mystic-600'}`}>
-                ★
+              <span className={`flex items-center justify-center ${star <= (hoveredRating || rating) ? 'text-gold-400' : 'text-mystic-600'}`}>
+                <Star className="w-8 h-8 fill-current" />
               </span>
             </button>
           ))}

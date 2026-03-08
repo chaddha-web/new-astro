@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { sendAuthOtp, verifyAuthOtp, fetchUserProfile, saveUserProfile } from '../../services/dbService';
 import { UserState } from '../../types';
+import { Lock, Smartphone, User, Clock, Globe, Unlock, Sparkles } from 'lucide-react';
 
 export interface OnboardingData {
   contact: string;
@@ -266,7 +267,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
         {showGuruPin ? (
             <div className="space-y-6 animate-in fade-in zoom-in duration-300">
                 <div className="text-center mb-6">
-                     <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">🔐</div>
+                     <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3"><Lock className="w-6 h-6 text-gold-400" /></div>
                      <h3 className="text-xl font-serif text-white">Guru Access</h3>
                      <p className="text-mystic-400 text-sm">Enter Security PIN to continue.</p>
                 </div>
@@ -280,7 +281,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
         ) : (
             <>
                 <div className="text-center mb-6">
-                     <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">📱</div>
+                     <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3"><Smartphone className="w-6 h-6 text-gold-400" /></div>
                      <h3 className="text-xl font-serif text-white">Let's stay connected</h3>
                      <p className="text-mystic-400 text-sm">Verify your mobile or email to start.</p>
                 </div>
@@ -339,7 +340,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
   const renderStep2 = () => (
     <form onSubmit={handleNext} className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
         <div className="text-center mb-6">
-             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">👤</div>
+             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3"><User className="w-6 h-6 text-gold-400" /></div>
              <h3 className="text-xl font-serif text-white">Who are you?</h3>
              <p className="text-mystic-400 text-sm">Help the stars identify your energy.</p>
         </div>
@@ -364,7 +365,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
   const renderStep3 = () => (
     <form onSubmit={handleNext} className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
         <div className="text-center mb-6">
-             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">🕒</div>
+             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3"><Clock className="w-6 h-6 text-gold-400" /></div>
              <h3 className="text-xl font-serif text-white">Moment of Arrival</h3>
              <p className="text-mystic-400 text-sm">The exact time determines your Lagna (Ascendant).</p>
         </div>
@@ -385,7 +386,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
   const renderStep4 = () => (
     <form onSubmit={handleNext} className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
         <div className="text-center mb-6">
-             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">🌍</div>
+             <div className="w-12 h-12 bg-mystic-700/50 rounded-full flex items-center justify-center mx-auto mb-3"><Globe className="w-6 h-6 text-gold-400" /></div>
              <h3 className="text-xl font-serif text-white">Place of Origin</h3>
              <p className="text-mystic-400 text-sm">Location corrects the planetary coordinates.</p>
         </div>
@@ -416,7 +417,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
   const renderStep5 = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500">
         <div className="text-center mb-4">
-             <div className="w-16 h-16 bg-gradient-to-tr from-gold-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-[0_0_30px_rgba(234,179,8,0.4)] text-3xl">🔓</div>
+             <div className="w-16 h-16 bg-gradient-to-tr from-gold-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-[0_0_30px_rgba(234,179,8,0.4)]"><Unlock className="w-8 h-8 text-white" /></div>
              <h3 className="text-2xl font-serif text-white mb-1">Final Step</h3>
              <p className="text-mystic-300 text-xs">Choose how you want to reveal your astrological reading.</p>
         </div>
@@ -426,7 +427,7 @@ const UserOnboarding: React.FC<UserOnboardingProps> = ({ onSubmit, onGuruLogin }
             <div className="absolute top-0 right-0 bg-gold-500 text-mystic-900 text-[9px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">Recommended</div>
             <div className="flex justify-between items-start mb-2">
                 <div><h4 className="text-base font-bold text-white">Premium Access</h4><p className="text-gold-400 font-bold text-lg">₹299 <span className="text-[10px] font-normal text-mystic-400">/ month</span></p></div>
-                <div className="text-2xl">✨</div>
+                <div><Sparkles className="w-6 h-6 text-gold-400" /></div>
             </div>
             <ul className="space-y-1.5 mb-4 text-xs text-mystic-300">
                 <li className="flex items-center gap-2"><span className="text-green-400">✓</span> 10 Detailed Questions Daily</li>
