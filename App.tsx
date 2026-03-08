@@ -476,7 +476,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, [sessionExpiry, userState.connectedAstrologerId]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isAiThinking, view]);
+  useEffect(() => { 
+      const timer = setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timer);
+  }, [messages, isAiThinking, view]);
 
   const updateDynamicSuggestions = (lastInput: string) => {
       const askedQuestions = new Set(messages.filter(m => m.sender === Sender.USER).map(m => m.text));
@@ -1118,7 +1123,11 @@ export default function App() {
           r.onend=()=>setIsRecording(false); 
       } 
   };
-  const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); };
+  const scrollToBottom = () => { 
+      setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+  };
 
   const handleViewChange = (newView: AppView) => {
       // Restriction Logic for Member 21
@@ -1211,7 +1220,7 @@ export default function App() {
                   </header>
               )}
 
-              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden pt-[78px] md:pt-[98px]">
+              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden pt-32 md:pt-40">
                 {!userState.hasOnboarded ? (
                     <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
                 ) : (
@@ -1222,9 +1231,7 @@ export default function App() {
                             <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} onLanguageChange={handleLanguageChange} />
                         ) : view === AppView.CHAT ? (
                             <div className="flex flex-col flex-1 animate-in fade-in duration-500 relative min-h-0">
-                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pt-4 px-4 md:px-0 scroll-smooth min-h-0">
-                                    {/* Transparent spacer at the top to prevent messages from hiding under header */}
-                                    <div className="w-full h-6 md:h-8 bg-transparent shrink-0 pointer-events-none"></div>
+                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 px-4 md:px-0 scroll-smooth min-h-0">
                                     {messages.map((msg) => <MessageBubble key={msg.id} message={msg} onUnlock={handleUnlockMessage} onPay={(a) => handleGuruDakshina(a)} onAcceptCall={handleAcceptCall} onSubscribe={() => { setPremiumModalReason(''); setShowPremiumModal(true); }} onBuyProduct={initiateProductPurchase} userHasPremium={userState.isPremium || !!userState.isAdminImpersonating || userState.tier === 'member21'} userName={userState.name} language={userState.language || 'en'} astrologers={astrologers} />)}
                                     {isAiThinking && <ThinkingBubble />}
                                     <div style={{ height: `calc(140px + ${keyboardOffset}px)` }} />

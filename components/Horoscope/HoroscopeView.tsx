@@ -283,8 +283,6 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
         </div>
 
         <div className="flex-1 overflow-y-auto pb-20 scrollbar-hide">
-            {/* Transparent spacer at the top to prevent content from hiding under header */}
-            <div className="w-full h-6 md:h-8 bg-transparent shrink-0 pointer-events-none"></div>
             {activeTab === 'daily' && renderDaily()}
             {activeTab === 'weekly' && renderFullForecast('weekly')}
             {activeTab === 'monthly' && renderFullForecast('monthly')}
