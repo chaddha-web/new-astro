@@ -1124,9 +1124,9 @@ export default function App() {
           !hasStarted ? (
             <LandingPage onSeekerEnter={handleSeekerEnter} onSeekerLogin={handleSeekerLogin} onVerifyCredentials={verifyUserCredentials} onGuruEnter={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} onAdminEnter={handleAdminEnter} />
           ) : view === AppView.ADMIN_DASHBOARD ? (
-            <div className="relative min-h-screen">
+            <div className="relative h-screen overflow-hidden">
                 <StarBackground />
-                <div className="relative z-10 h-screen">
+                <div className="relative z-10 h-full">
                   <AdminDashboard 
                       products={products} 
                       transactions={transactions} 
@@ -1141,7 +1141,7 @@ export default function App() {
                 </div>
             </div>
           ) : (
-            <div className="relative min-h-screen font-sans text-mystic-100 flex flex-col bg-mystic-900 overflow-hidden">
+            <div className="relative h-screen font-sans text-mystic-100 flex flex-col bg-mystic-900 overflow-hidden">
               <StarBackground />
               {userState.hasOnboarded && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} user={userState} onNavigate={(v) => { if(v==='chart') setShowChartModal(true); else if (v === 'upgrade') { setPremiumModalReason('Upgrade Plan'); setShowPremiumModal(true); } else handleViewChange(v as AppView); setIsSidebarOpen(false); }} onOpenProfile={() => { setShowProfileModal(true); setIsSidebarOpen(false); }} onOpenHistory={openHistory} onLogout={handleLogout} onLanguageChange={handleLanguageChange} />}
               {showHistoryModal && <HistoryModal transactions={transactions.filter(t => t.userId === userState.contact || t.userId === userState.id)} onClose={() => setShowHistoryModal(false)} initialTab={historyTab} />}
@@ -1149,7 +1149,7 @@ export default function App() {
               {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed bottom-24 right-4 z-[60] bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 px-6 rounded-full shadow-2xl border-2 border-orange-400 animate-bounce">🚪 Exit Admin Mode</button>}
 
               {userState.hasOnboarded && (
-                  <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-white/5 bg-mystic-900/95 backdrop-blur-2xl transition-all shadow-2xl">
+                  <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-800/98 backdrop-blur-2xl transition-all shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-gold-400 hover:text-white transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg></button>
                         <div className="flex flex-col items-start gap-1">
@@ -1185,7 +1185,7 @@ export default function App() {
                   </header>
               )}
 
-              <main id="main-content" className={`relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto h-screen ${userState.hasOnboarded ? 'pt-20 md:pt-24' : ''}`}>
+              <main id="main-content" className={`relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden ${userState.hasOnboarded ? 'pt-28 md:pt-32' : ''}`}>
                 {!userState.hasOnboarded ? (
                     <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
                 ) : (
@@ -1195,7 +1195,7 @@ export default function App() {
                         ) : view === AppView.HOROSCOPE ? (
                             <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} onLanguageChange={handleLanguageChange} />
                         ) : view === AppView.CHAT ? (
-                            <div className="flex flex-col h-full animate-in fade-in duration-500 relative">
+                            <div className="flex flex-col flex-1 animate-in fade-in duration-500 relative overflow-hidden">
                                 <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pb-48 pt-4 px-4 md:px-0 scroll-smooth">
                                     {messages.map((msg) => <MessageBubble key={msg.id} message={msg} onUnlock={handleUnlockMessage} onPay={(a) => handleGuruDakshina(a)} onAcceptCall={handleAcceptCall} onSubscribe={() => { setPremiumModalReason(''); setShowPremiumModal(true); }} onBuyProduct={initiateProductPurchase} userHasPremium={userState.isPremium || !!userState.isAdminImpersonating || userState.tier === 'member21'} userName={userState.name} language={userState.language || 'en'} astrologers={astrologers} />)}
                                     {isAiThinking && <ThinkingBubble />}

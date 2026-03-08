@@ -198,7 +198,7 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
   // 1. LOGIN SCREEN
   if (!currentGuru) {
       return (
-          <div className="flex flex-col h-full bg-mystic-900/90 text-white rounded-xl overflow-hidden items-center justify-center p-6 animate-in fade-in duration-500">
+          <div className="flex flex-col flex-1 bg-mystic-900/90 text-white rounded-xl overflow-hidden items-center justify-center p-6 animate-in fade-in duration-500">
               <div className="mb-8 text-center">
                   <div className="w-20 h-20 bg-mystic-800 rounded-full mx-auto flex items-center justify-center text-4xl border border-gold-500/30 mb-4 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
                       🕉️
@@ -242,7 +242,7 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
   // 2. DASHBOARD (CLIENT LIST & OVERVIEW)
   if (!isChatOpen) {
       return (
-        <div className="flex flex-col h-full bg-mystic-900/90 text-white rounded-xl overflow-hidden p-4 md:p-8 relative animate-in zoom-in-95 duration-300 overflow-y-auto">
+        <div className="flex flex-col flex-1 bg-mystic-900/90 text-white rounded-xl overflow-hidden p-4 md:p-8 relative animate-in zoom-in-95 duration-300 overflow-y-auto">
            {/* Header */}
            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 border-b border-white/5 pb-6 gap-4">
               <div className="flex items-center gap-4">
@@ -416,7 +416,7 @@ const AstrologerDashboard: React.FC<AstrologerDashboardProps> = ({ activeUser, m
   const displayMessages = clientMessages.length > 0 ? clientMessages : messages;
 
   return (
-    <div className="flex flex-col h-full bg-mystic-900/90 text-white rounded-xl overflow-hidden border border-gold-500/20 animate-in slide-in-from-right-10 duration-300 relative">
+    <div className="flex flex-col flex-1 bg-mystic-900/90 text-white rounded-xl overflow-hidden border border-gold-500/20 animate-in slide-in-from-right-10 duration-300 relative">
       {/* Active Chat Header */}
       <div className="bg-mystic-800 p-4 border-b border-mystic-700 flex justify-between items-center shadow-lg z-10">
         <div className="flex items-center gap-3">

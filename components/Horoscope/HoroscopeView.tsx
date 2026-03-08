@@ -242,7 +242,7 @@ const HoroscopeView: React.FC<HoroscopeViewProps> = ({ user, onSendYearlyReport,
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden p-4 md:p-0">
+    <div className="flex flex-col flex-1 overflow-hidden p-4 md:p-0">
         
         {/* Header Controls */}
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">

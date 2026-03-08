@@ -28,7 +28,7 @@ const Shop: React.FC<ShopProps> = ({ products, onBuy }) => {
   });
 
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-500 p-4 md:p-0">
+    <div className="flex flex-col flex-1 animate-in fade-in duration-500 p-4 md:p-0 overflow-hidden">
         {/* Header Section */}
         <div className="text-center mb-6 mt-2">
             <h2 className="text-2xl md:text-3xl font-serif text-white mb-2">Spiritual Store</h2>
