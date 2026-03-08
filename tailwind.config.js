@@ -13,6 +13,7 @@ export default {
       },
       colors: {
         mystic: {
+          950: '#08020D',
           900: '#0F0518',
           800: '#1A0B2E',
           700: '#2D1B4E',
