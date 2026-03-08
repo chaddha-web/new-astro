@@ -22,7 +22,7 @@ import NotFound from './components/Layout/NotFound';
 import { Type, Schema } from '@google/genai';
 
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { Lock, LogOut, Globe, Sparkles, MessageCircle } from 'lucide-react';
+import { Lock, LogOut, Globe, Sparkles, MessageCircle, MessageSquare, Users, ShoppingBag } from 'lucide-react';
 import TalkToAstrologer from './components/SEO/TalkToAstrologer';
 import KundliPage from './components/SEO/KundliPage';
 import KundliMatching from './components/SEO/KundliMatching';
@@ -476,6 +476,19 @@ export default function App() {
     return () => clearInterval(interval);
   }, [sessionExpiry, userState.connectedAstrologerId]);
 
+  useEffect(() => {
+      if (userState.hasOnboarded && messages.length === 0) {
+          const welcomeMsg: Message = {
+              id: 'welcome',
+              text: userState.language === 'hi' ? "नमस्ते! मैं आपका ज्योतिष सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ?" : "Namaste! I am your AI Astrology assistant. How can I guide you today?",
+              sender: Sender.AI,
+              timestamp: new Date(),
+              type: MessageType.TEXT
+          };
+          setMessages([welcomeMsg]);
+      }
+  }, [userState.hasOnboarded, userState.language]);
+
   useEffect(() => { 
       const timer = setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -554,6 +567,28 @@ export default function App() {
   const handleImpersonateUser = async (targetUser: any) => {
       setIsGlobalLoading(true);
       setLoadingText(`Logging in as ${targetUser.name}...`);
+      
+      // Handle Hardcoded Sample User
+      if (targetUser.id === 'sample-admin-user') {
+          const sampleProfile = {
+              ...targetUser,
+              birthDate: '1990-01-01',
+              birthTime: '12:00',
+              birthPlace: 'New Delhi, India',
+              gender: 'Male',
+              language: 'en',
+              isAdminImpersonating: true
+          };
+          setUserState(sampleProfile);
+          const instr = generateSystemInstruction(sampleProfile.name, sampleProfile.gender, sampleProfile.birthDate, sampleProfile.birthTime, sampleProfile.birthPlace, 'en');
+          initializeChat(instr).then(() => {
+              setMessages([{ id: 'sample-welcome', text: `[ADMIN MODE] Sample User Dashboard Loaded.`, sender: Sender.SYSTEM, timestamp: new Date() }]);
+          });
+          setView(AppView.HOROSCOPE); // Go to Insights page as requested
+          setIsGlobalLoading(false);
+          return;
+      }
+
       try {
           const { profile, chatHistory } = await fetchUserProfile(targetUser.contact);
           if (profile) {
@@ -1184,7 +1219,7 @@ export default function App() {
               {userState.isAdminImpersonating && <button onClick={handleExitImpersonation} className="fixed top-4 right-4 z-[70] bg-orange-600 hover:bg-orange-500 text-white font-bold py-1.5 px-4 rounded-full shadow-2xl border border-orange-400 text-xs flex items-center gap-2"><span><LogOut className="w-4 h-4" /></span> Exit Admin</button>}
 
               {userState.hasOnboarded && (
-                  <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-950 transition-all shadow-2xl">
+                  <header className="flex items-center justify-between p-4 md:p-6 border-b border-gold-500/20 bg-mystic-950 transition-all shadow-2xl shrink-0 z-50">
                     <div className="flex items-center gap-4">
                         <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-gold-400 hover:text-white transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" /></svg></button>
                         <div className="flex flex-col items-start gap-1">
@@ -1197,7 +1232,7 @@ export default function App() {
                                     <option value="en">English</option>
                                     <option value="hi">हिंदी</option>
                                     <option value="te">తెలుగు</option>
-                                    <option value="mr">मराठी</option>
+                                    <option value="mr">మराठी</option>
                                     <option value="ml">മലയാളം</option>
                                     <option value="pa">ਪੰਜਾਬੀ</option>
                                 </select>
@@ -1208,19 +1243,11 @@ export default function App() {
                     <div className="flex items-center gap-3">
                         {userState.connectedAstrologerId && <div className="text-[10px] text-green-400 font-bold border border-green-500/30 px-2 py-1 rounded-full animate-pulse">LIVE {timeLeft}</div>}
                         {userState.connectedAstrologerId && <button onClick={disconnectAstrologer} className="bg-red-900/30 text-red-400 px-3 py-1.5 rounded-full text-xs font-bold uppercase">{t.endChat}</button>}
-                        <div className="hidden md:flex bg-white/5 rounded-full p-1 border border-white/10">
-                            {[AppView.CHAT, AppView.HOROSCOPE, AppView.MARKETPLACE, AppView.SHOP].map((v) => (
-                                <button key={v} onClick={() => handleViewChange(v)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all relative ${view === v ? 'bg-mystic-100 text-mystic-900' : 'text-mystic-400 hover:text-white'}`}>
-                                    {userState.tier === 'member21' && (v === AppView.MARKETPLACE || v === AppView.SHOP) && <span className="absolute -top-1 -right-1"><Lock className="w-3 h-3 text-mystic-400" /></span>}
-                                    {v === AppView.HOROSCOPE ? 'Insights' : v === AppView.CHAT ? t.chat : v === AppView.MARKETPLACE ? t.gurus : t.shop}
-                                </button>
-                            ))}
-                        </div>
                     </div>
                   </header>
               )}
 
-              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden pt-32 md:pt-40">
+              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden">
                 {!userState.hasOnboarded ? (
                     <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
                 ) : (

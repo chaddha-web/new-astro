@@ -333,6 +333,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
+                                        {/* Hardcoded Sample User - Admin Only */}
+                                        <tr className="bg-gold-500/10 border-l-4 border-gold-500 hover:bg-gold-500/20 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-gold-500 flex items-center justify-center text-mystic-900 font-bold text-xs shadow-lg shadow-gold-500/20">
+                                                        S
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-gold-400">Sample Seeker (Admin Only)</p>
+                                                        <p className="text-xs text-gold-500/60 font-mono">+91 00000 00000</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="bg-gold-500 text-mystic-900 px-2 py-1 rounded text-[10px] font-bold border border-gold-500 uppercase tracking-wide">PREMIUM SAMPLE</span> 
+                                            </td>
+                                            <td className="px-6 py-4 text-xs font-mono text-gold-400">
+                                                12/31/2029
+                                            </td>
+                                            <td className="px-6 py-4 text-gold-300">
+                                                <span className="font-mono text-gold-400 font-bold">99</span> <span className="text-xs">Qs/Day</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-gold-500/50 text-xs">
+                                                01/01/2024
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center gap-2">
+                                                    <button onClick={() => { 
+                                                        const sampleUser = { id: 'sample-admin-user', name: 'Sample Seeker', contact: '+91 00000 00000', tier: 'premium', isPremium: true, dailyQuestionsLeft: 99, hasOnboarded: true };
+                                                        onImpersonate(sampleUser); 
+                                                        handleEditUser(sampleUser);
+                                                    }} className="bg-gold-500 text-mystic-900 p-2 rounded-lg text-xs transition-colors border border-gold-600 font-bold flex items-center gap-1" title="Login As Sample User"><UserSearch className="w-4 h-4" /> TEST</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
                                         {users.filter(u => {
                                             const matchName = u.name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.contact?.includes(searchTerm);
                                             let matchStatus = true;
