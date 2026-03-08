@@ -1211,7 +1211,7 @@ export default function App() {
                   </header>
               )}
 
-              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden pt-[96px] md:pt-[112px]">
+              <main id="main-content" className="relative z-10 flex-1 flex flex-col max-w-5xl w-full mx-auto overflow-hidden pt-[104px] md:pt-[120px]">
                 {!userState.hasOnboarded ? (
                     <UserOnboarding onSubmit={handleOnboardingSubmit} onGuruLogin={() => { setHasStarted(true); setUserState(p=>({...p, hasOnboarded:true})); setView(AppView.ASTRO_DASHBOARD); }} />
                 ) : (
@@ -1222,9 +1222,10 @@ export default function App() {
                             <HoroscopeView user={userState} horoscopeData={horoscopeData} isLoading={isGeneratingHoroscope} onSendYearlyReport={handleSendYearlyReport} onLanguageChange={handleLanguageChange} />
                         ) : view === AppView.CHAT ? (
                             <div className="flex flex-col flex-1 animate-in fade-in duration-500 relative min-h-0">
-                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pt-4 px-4 md:px-0 scroll-smooth min-h-0" style={{ paddingBottom: `calc(140px + ${keyboardOffset}px)` }}>
+                                <div ref={chatContainerRef} onScroll={() => setShowScrollButton(chatContainerRef.current ? chatContainerRef.current.scrollHeight - chatContainerRef.current.scrollTop - chatContainerRef.current.clientHeight > 100 : false)} className="flex-1 overflow-y-auto scrollbar-hide pr-2 pt-4 px-4 md:px-0 scroll-smooth min-h-0">
                                     {messages.map((msg) => <MessageBubble key={msg.id} message={msg} onUnlock={handleUnlockMessage} onPay={(a) => handleGuruDakshina(a)} onAcceptCall={handleAcceptCall} onSubscribe={() => { setPremiumModalReason(''); setShowPremiumModal(true); }} onBuyProduct={initiateProductPurchase} userHasPremium={userState.isPremium || !!userState.isAdminImpersonating || userState.tier === 'member21'} userName={userState.name} language={userState.language || 'en'} astrologers={astrologers} />)}
                                     {isAiThinking && <ThinkingBubble />}
+                                    <div style={{ height: `calc(140px + ${keyboardOffset}px)` }} />
                                     <div ref={messagesEndRef} />
                                 </div>
                                 {showScrollButton && <button onClick={scrollToBottom} className="fixed right-6 z-40 bg-mystic-800 p-3 rounded-full border border-gold-500/30 shadow-lg text-gold-400 hover:bg-mystic-700 transition-all animate-bounce" style={{ bottom: `calc(140px + ${keyboardOffset}px)` }}>↓</button>}
