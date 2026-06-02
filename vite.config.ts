@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => {
         JWT_SECRET: env.JWT_SECRET
       }
     },
+    preview: {
+      allowedHosts: true
+    },
     build: {
       outDir: 'dist',
       sourcemap: true,
